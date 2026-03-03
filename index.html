@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Battle 3x3 — Home</title>
+  <meta name="description" content="Official Battle 3x3 Basketball League — stats, players, games and standings.">
+  <link rel="stylesheet" href="css/battle.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<!-- HERO -->
+<section class="home-hero">
+  <div class="container">
+    <div class="home-hero-content animate-up">
+      <div class="home-hero-eyebrow">Official Platform</div>
+      <h1>
+        BATTLE<br>
+        <span class="accent">3x3</span><br>
+        BASKETBALL
+      </h1>
+      <p class="home-hero-desc">
+        The ultimate 3-on-3 basketball league experience. Live scores, player stats,
+        team standings and full season history — all in one place.
+      </p>
+      <div class="home-hero-actions">
+        <a href="players" class="btn btn-primary">View Players</a>
+        <a href="games"   class="btn btn-ghost">Recent Games</a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- QUICK STATS BAR -->
+<section style="background:var(--surface);border-bottom:1px solid var(--border);padding:20px 0;">
+  <div class="container">
+    <div id="quick-stats" style="display:grid;grid-template-columns:repeat(4,1fr);gap:0;border-radius:var(--radius);overflow:hidden;border:1px solid var(--border);">
+      <div class="big-stat" style="border-right:1px solid var(--border);">
+        <span class="value" id="qs-players">—</span>
+        <span class="label">Players</span>
+      </div>
+      <div class="big-stat" style="border-right:1px solid var(--border);">
+        <span class="value" id="qs-teams">—</span>
+        <span class="label">Teams</span>
+      </div>
+      <div class="big-stat" style="border-right:1px solid var(--border);">
+        <span class="value" id="qs-games">—</span>
+        <span class="label">Games Played</span>
+      </div>
+      <div class="big-stat">
+        <span class="value" id="qs-leagues">—</span>
+        <span class="label">Leagues</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<div class="page-content" style="padding-top:0;">
+
+  <!-- ───────────────────────────────────────────────────────
+       SECTION 1: Upcoming Games (left) + Recent Results (right)
+       3 cards each. Stacks on mobile (upcoming first).
+       ─────────────────────────────────────────────────────── -->
+  <section class="home-section">
+    <div class="container">
+      <div id="games-two-col">
+
+        <div>
+          <div class="section-header animate-up">
+            <h2 class="section-title">Upcoming <span>Games</span></h2>
+            <a href="games?status=scheduled" class="view-all">All Scheduled →</a>
+          </div>
+          <div id="upcoming-games" style="display:flex;flex-direction:column;gap:10px;">
+            <div class="loading-spinner"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+        <div>
+          <div class="section-header animate-up">
+            <h2 class="section-title">Recent <span>Results</span></h2>
+            <a href="games" class="view-all">All Games →</a>
+          </div>
+          <div id="recent-games" style="display:flex;flex-direction:column;gap:10px;">
+            <div class="loading-spinner"><div class="spinner"></div></div>
+          </div>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <div class="court-line"></div>
+
+  <!-- ───────────────────────────────────────────────────────
+       SECTION 2: MVP Race (player cards, 4 max)
+       Renamed from "Top Performers"
+       ─────────────────────────────────────────────────────── -->
+  <section class="home-section">
+    <div class="container">
+      <div class="section-header animate-up">
+        <h2 class="section-title">MVP <span>Race</span></h2>
+        <a href="players" class="view-all">All Players →</a>
+      </div>
+      <div id="top-players-grid" class="grid-4 stagger">
+        <div class="loading-spinner" style="grid-column:1/-1">
+          <div class="spinner"></div><span>Loading…</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="court-line"></div>
+
+  <!-- ───────────────────────────────────────────────────────
+       SECTION 3: League Standings (full width)
+       Renamed from "Standings", no longer side-by-side
+       ─────────────────────────────────────────────────────── -->
+  <section class="home-section">
+    <div class="container">
+      <div class="section-header animate-up">
+        <h2 class="section-title">League <span>Standings</span></h2>
+        <a href="teams" class="view-all">Full Table →</a>
+      </div>
+      <div id="standings-wrap" class="table-wrap">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <div class="court-line"></div>
+
+  <!-- ───────────────────────────────────────────────────────
+       SECTION 4: Player Rankings (stats table, last)
+       Renamed from "MVP Race"
+       ─────────────────────────────────────────────────────── -->
+  <section class="home-section">
+    <div class="container">
+      <div class="section-header animate-up">
+        <h2 class="section-title">Player <span>Rankings</span></h2>
+        <a href="mvp" class="view-all">Full Rankings →</a>
+      </div>
+      <div id="player-rankings">
+        <div class="loading-spinner"><div class="spinner"></div></div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/nav.js"></script>
+<script src="js/api.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────
+// Playoff source-resolution (mirrors games.html exactly)
+// ─────────────────────────────────────────────────────────────
+function buildGameMap(games) {
+  const map = {};
+  games.forEach(g => { map[parseInt(g.id)] = g; });
+  return map;
+}
+
+function getSourceLabel(src, is8) {
+  const round = src.playoff_round ?? '';
+  const pos   = parseInt(src.playoff_position ?? 0);
+  if (round === 'Quarterfinal') return 'Winner of QF' + pos;
+  if (round === 'Semifinal')    return 'Winner of SF' + (is8 ? pos - 4 : pos);
+  return 'Winner of Game ' + pos;
+}
+
+function resolveSlots(g, gameById, is8) {
+  const homeId  = g.home_source_game_id ? parseInt(g.home_source_game_id) : 0;
+  const awayId  = g.away_source_game_id ? parseInt(g.away_source_game_id) : 0;
+  const homeSrc = homeId ? (gameById[homeId] ?? null) : null;
+  const awaySrc = awayId ? (gameById[awayId] ?? null) : null;
+  const homeDone = !homeSrc || homeSrc.status === 'completed';
+  const awayDone = !awaySrc || awaySrc.status === 'completed';
+  return {
+    homeLabel: (!homeDone && homeSrc) ? getSourceLabel(homeSrc, is8) : (g.home_team || '?'),
+    awayLabel: (!awayDone && awaySrc) ? getSourceLabel(awaySrc, is8) : (g.away_team || '?'),
+    homeTbd: !homeDone && !!homeSrc,
+    awayTbd: !awayDone && !!awaySrc,
+  };
+}
+
+// ─────────────────────────────────────────────────────────────
+// Init — fetch all season games once, split by status
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await new Promise(r => setTimeout(r, 100));
+  loadHome();
+});
+
+async function loadHome() {
+  const l   = State.selectedLeague;
+  const sid = l?.season?.id;
+  const lid = l?.id;
+
+  if (!lid) {
+    document.getElementById('top-players-grid').innerHTML =
+      `<div style="grid-column:1/-1">${emptyState('🏀','No league selected. Please choose a league from the top menu.')}</div>`;
+    return;
+  }
+
+  try {
+    const [players, allSeasonGames, standings, mvpData, leagues] = await Promise.all([
+      API.players(lid, sid).catch(() => []),
+      API.games({ league_id: lid, season_id: sid || '' }).catch(() => []),
+      sid ? API.standings(lid, sid).catch(() => []) : Promise.resolve([]),
+      lid ? API.mvp(lid, sid).catch(() => ({ race: [] })) : Promise.resolve({ race: [] }),
+      API.leagues().catch(() => []),
+    ]);
+
+    const gameById = buildGameMap(allSeasonGames);
+    const is8      = allSeasonGames.filter(g => g.game_type === 'playoff').length === 7;
+
+    // Sort: upcoming ascending by date, recent descending
+    const scheduled = allSeasonGames
+      .filter(g => g.status === 'scheduled')
+      .sort((a, b) => new Date(a.game_date) - new Date(b.game_date));
+
+    const completed = allSeasonGames
+      .filter(g => g.status === 'completed')
+      .sort((a, b) => new Date(b.game_date) - new Date(a.game_date));
+
+    // Quick stats
+    document.getElementById('qs-players').textContent  = players.length;
+    document.getElementById('qs-teams').textContent    = new Set(players.map(p => p.team_id).filter(Boolean)).size;
+    document.getElementById('qs-games').textContent    = completed.length;
+    document.getElementById('qs-leagues').textContent  = leagues.length;
+
+    // Render each section
+    renderUpcomingGames(scheduled.slice(0, 3), gameById, is8);
+    renderRecentGames(completed.slice(0, 3), gameById, is8);
+    renderMvpRaceCards(players);
+    renderStandings(standings, l);
+    renderPlayerRankings(mvpData.race || []);
+
+  } catch (e) {
+    console.error('Home load error:', e);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Shared: single game card used by both upcoming + recent
+// ─────────────────────────────────────────────────────────────
+function gameCard(g, i, gameById, is8, isCompleted) {
+  let home = g.home_team, away = g.away_team;
+  let homeLogo = g.home_logo, awayLogo = g.away_logo;
+  let homeTbd = false, awayTbd = false;
+
+  if (g.game_type === 'playoff' && (g.home_source_game_id || g.away_source_game_id)) {
+    const s = resolveSlots(g, gameById, is8);
+    home = s.homeLabel; away = s.awayLabel;
+    homeTbd = s.homeTbd; awayTbd = s.awayTbd;
+    if (homeTbd) homeLogo = null;
+    if (awayTbd) awayLogo = null;
+  }
+
+  const hw = isCompleted && g.home_score > g.away_score;
+  const aw = isCompleted && g.away_score > g.home_score;
+
+  const logo = (url, name, tbd) => url
+    ? `<img src="${url}" alt="${name}" class="team-logo-sm">`
+    : `<div class="team-logo-placeholder">${tbd ? '?' : Utils.getInitials(name)}</div>`;
+
+  const dateStr = Utils.formatDate(g.game_date) +
+    (!isCompleted && g.game_time ? ' · ' + Utils.formatTime(g.game_time) : '');
+
+  return `
+    <div class="game-card home-game-card" style="animation-delay:${i * 0.07}s"
+         ${isCompleted ? `onclick="location.href='games?game=${g.id}'"` : ''}>
+      <div class="game-card-meta">
+        <span class="game-date">${dateStr}</span>
+        <div class="game-card-badges">
+          ${Utils.gameTypeBadge(g.game_type, g.playoff_round)}
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="game-team">
+          ${logo(homeLogo, home, homeTbd)}
+          <span class="team-name-sm${homeTbd ? ' tbd-slot' : ''}" title="${home}">${Utils.abbrevTeam(home)}</span>
+        </div>
+        <div class="game-score">
+          ${isCompleted
+            ? `<span class="score-val ${hw?'winner':''}">${g.home_score}</span>
+               <span class="score-sep">·</span>
+               <span class="score-val ${aw?'winner':''}">${g.away_score}</span>`
+            : `<span class="game-time-big">VS</span>`}
+        </div>
+        <div class="game-team away">
+          ${logo(awayLogo, away, awayTbd)}
+          <span class="team-name-sm${awayTbd ? ' tbd-slot' : ''}" title="${away}">${Utils.abbrevTeam(away)}</span>
+        </div>
+      </div>
+      ${isCompleted ? `<div style="text-align:center;font-size:11px;color:var(--orange);margin-top:8px">Tap to view box score →</div>` : ''}
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Section 1a — Upcoming Games
+// ─────────────────────────────────────────────────────────────
+function renderUpcomingGames(games, gameById, is8) {
+  const el = document.getElementById('upcoming-games');
+  el.innerHTML = games.length
+    ? games.map((g, i) => gameCard(g, i, gameById, is8, false)).join('')
+    : emptyState('📅', 'No upcoming games scheduled');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Section 1b — Recent Results
+// ─────────────────────────────────────────────────────────────
+function renderRecentGames(games, gameById, is8) {
+  const el = document.getElementById('recent-games');
+  el.innerHTML = games.length
+    ? games.map((g, i) => gameCard(g, i, gameById, is8, true)).join('')
+    : emptyState('🎮', 'No recent games');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Section 2 — MVP Race (4 player cards, sorted by PPG)
+// ─────────────────────────────────────────────────────────────
+function renderMvpRaceCards(players) {
+  const el = document.getElementById('top-players-grid');
+  if (!players.length) {
+    el.innerHTML = `<div style="grid-column:1/-1">${emptyState('🏀', 'No player data available')}</div>`;
+    return;
+  }
+  const top4 = [...players].sort((a, b) => b.ppg - a.ppg).slice(0, 4);
+  el.innerHTML = top4.map((p, i) => {
+    const name = `${p.first_name} ${p.last_name}`;
+    return `
+      <a href="player?id=${p.id}" class="player-card" style="animation-delay:${i * 0.08}s">
+        ${p.photo
+          ? `<img src="${p.photo}" alt="${name}" class="player-card-photo">`
+          : `<div class="player-card-photo-placeholder">🏀</div>`}
+        <div class="player-card-body">
+          ${p.jersey_number !== null ? `<div class="player-card-jersey">#${p.jersey_number}</div>` : ''}
+          <div class="player-card-name">${name}</div>
+          <div class="player-card-team">${p.team_name || '—'}</div>
+          <div class="player-stats-row">
+            <div class="stat-cell"><span class="val">${p.ppg || 0}</span><span class="lbl">PPG</span></div>
+            <div class="stat-cell"><span class="val">${p.season_3pt || 0}</span><span class="lbl">3PM</span></div>
+            <div class="stat-cell"><span class="val">${p.season_gp || 0}</span><span class="lbl">GP</span></div>
+          </div>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+
+// ─────────────────────────────────────────────────────────────
+// Section 3 — League Standings (full width, +/- column added)
+// ─────────────────────────────────────────────────────────────
+function renderStandings(standings) {
+  const el = document.getElementById('standings-wrap');
+  if (!standings.length) { el.innerHTML = emptyState('📊', 'No standings yet'); return; }
+  const pc = standings[0]?.playoff_teams_count || 4;
+  el.innerHTML = `
+    <table class="standings-table">
+      <thead>
+        <tr>
+          <th style="width:36px">#</th>
+          <th>Team</th>
+          <th>W</th>
+          <th>L</th>
+          <th class="hide-mobile">PF</th>
+          <th class="hide-mobile">PA</th>
+          <th class="hide-mobile">+/-</th>
+        </tr>
+      </thead>
+      <tbody>
+        ${standings.map((s, i) => {
+          const diff = (s.points_for || 0) - (s.points_against || 0);
+          return `
+            <tr onclick="location.href='teams'" style="cursor:pointer">
+              <td class="rank-cell ${i < pc ? 'top' : ''}">${i < pc ? '🟠' : i + 1}</td>
+              <td>
+                <div class="team-name-cell">
+                  ${Utils.teamLogo(s.team_logo, s.team_name)}
+                  <span title="${s.team_name}">${Utils.abbrevTeam(s.team_name, 16)}</span>
+                </div>
+              </td>
+              <td style="color:var(--green);font-weight:700">${s.wins}</td>
+              <td style="color:var(--red)">${s.losses}</td>
+              <td class="hide-mobile">${s.points_for}</td>
+              <td class="hide-mobile">${s.points_against}</td>
+              <td class="hide-mobile" style="font-weight:600;color:${diff >= 0 ? 'var(--green)' : 'var(--red)'}">
+                ${diff >= 0 ? '+' : ''}${diff}
+              </td>
+            </tr>
+          `;
+        }).join('')}
+      </tbody>
+    </table>
+    <div style="padding:8px 16px;font-size:11px;color:var(--text-muted)">🟠 = Playoff position</div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Section 4 — Player Rankings (stats table, last section)
+// ─────────────────────────────────────────────────────────────
+function renderPlayerRankings(race) {
+  const el = document.getElementById('player-rankings');
+  if (!race.length) { el.innerHTML = emptyState('👑', 'Rankings coming soon'); return; }
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th style="width:40px">#</th>
+            <th>Player</th>
+            <th class="hide-mobile">Team</th>
+            <th>GP</th>
+            <th>PTS</th>
+            <th style="color:var(--orange)">PPG</th>
+            <th class="hide-mobile">3PM</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${race.slice(0, 10).map((p, i) => {
+            const name = `${p.first_name} ${p.last_name}`;
+            return `
+              <tr onclick="location.href='player?id=${p.id}'" style="cursor:pointer">
+                <td class="rank-cell ${i < 3 ? 'top' : ''}">${i === 0 ? '👑' : i + 1}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    ${Utils.avatar(p.photo, name, 36)}
+                    <strong>${name}</strong>
+                  </div>
+                </td>
+                <td class="hide-mobile" style="color:var(--text-secondary)">${Utils.abbrevTeam(p.team_name, 14)}</td>
+                <td>${p.games_played}</td>
+                <td style="font-weight:700">${p.total_points}</td>
+                <td style="color:var(--orange);font-weight:700">${p.ppg}</td>
+                <td class="hide-mobile">${p.total_3pt}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+</script>
+
+<style>
+/* ── index.html overrides ───────────────────────────── */
+
+/* Two-column games layout */
+#games-two-col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 40px;
+}
+
+/* TBD placeholder — italic + muted */
+.tbd-slot {
+  font-style: italic;
+  color: var(--text-muted) !important;
+}
+
+/* Home game cards */
+.home-game-card { min-height: 0; }
+
+/* ── Mobile ──────────────────────────────────────────── */
+@media (max-width: 768px) {
+  /* Games: stack vertically, upcoming first (natural DOM order) */
+  #games-two-col {
+    grid-template-columns: 1fr;
+    gap: 32px;
+  }
+  /* MVP Race player cards: 2×2 grid */
+  #top-players-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+  /* Quick stats: 2×2 */
+  #quick-stats {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+@media (max-width: 480px) {
+  #top-players-grid {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}
+</style>
+</body>
+</html>

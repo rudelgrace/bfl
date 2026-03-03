@@ -1,0 +1,891 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Games — Battle 3x3</title>
+  <link rel="stylesheet" href="css/battle.css">
+  <style>
+    /* ── Game detail modal ──────────────────────────────── */
+    .game-detail-modal {
+      display: none;
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.75);
+      z-index: 500;
+      overflow-y: auto;
+      padding: 20px;
+    }
+    .game-detail-modal.open { display: flex; align-items: flex-start; justify-content: center; }
+    .game-detail-panel {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      width: 100%;
+      max-width: 720px;
+      margin: auto;
+      overflow: hidden;
+      animation: fadeInUp .3s both;
+    }
+    .modal-close {
+      position: absolute;
+      top: 16px; right: 16px;
+      width: 36px; height: 36px;
+      border-radius: 50%;
+      background: var(--surface);
+      color: var(--text-secondary);
+      font-size: 18px;
+      display: flex; align-items: center; justify-content: center;
+      cursor: pointer; z-index: 10;
+    }
+    .modal-close:hover { color: var(--text-primary); }
+    .game-detail-scoreboard {
+      background: linear-gradient(135deg, var(--surface), #0d1626);
+      padding: 32px; text-align: center; position: relative;
+    }
+    .final-score {
+      display: flex; align-items: center; justify-content: center;
+      gap: 24px; margin: 20px 0;
+    }
+    .final-team { flex: 1; }
+    .final-team-name { font-family: var(--font-display); font-size: 1.4rem; letter-spacing:.04em; }
+    .final-score-num { font-family: var(--font-display); font-size: 4rem; line-height: 1; }
+    .final-score-sep { font-size: 2rem; color: var(--text-muted); }
+    .winner-score { color: var(--orange); }
+
+    /* ── Playoff Bracket ────────────────────────────────── */
+    .bracket-section {
+      background: var(--card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius);
+      margin-bottom: 32px;
+      overflow: hidden;
+    }
+    .bracket-section-header {
+      padding: 16px 20px;
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+    .bracket-section-title {
+      font-family: var(--font-display);
+      font-size: 1.3rem;
+      letter-spacing: .05em;
+    }
+    .bracket-section-title span { color: var(--orange); }
+    .bracket-scroll {
+      overflow-x: auto;
+      padding: 24px 20px;
+      -webkit-overflow-scrolling: touch;
+    }
+
+    /* Layout: columns side by side with connector lines */
+    .bracket-layout {
+      display: flex;
+      align-items: center;
+      gap: 0;
+      min-width: max-content;
+    }
+    .bracket-col {
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      min-width: 200px;
+    }
+    .bracket-col-final {
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      min-width: 200px;
+    }
+    .bracket-col-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .12em;
+      color: var(--text-muted);
+      margin-bottom: 8px;
+      padding-left: 4px;
+    }
+
+    /* Connector lines between columns */
+    .bracket-connector {
+      display: flex;
+      flex-direction: column;
+      justify-content: space-around;
+      width: 40px;
+      flex-shrink: 0;
+    }
+    .bracket-line-pair {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      flex: 1;
+      position: relative;
+    }
+    /* SVG connectors are drawn inline in JS for precision */
+
+    /* Individual game card inside the bracket */
+    .bracket-game {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      overflow: hidden;
+      transition: border-color var(--transition);
+      min-width: 200px;
+    }
+    .bracket-game.done {
+      border-color: rgba(249,115,22,0.35);
+    }
+    .bracket-game.locked {
+      opacity: 0.65;
+    }
+    .bracket-game.clickable {
+      cursor: pointer;
+    }
+    .bracket-game.clickable:hover {
+      border-color: var(--orange);
+      transform: translateY(-1px);
+      box-shadow: 0 4px 16px rgba(0,0,0,0.3);
+    }
+    .bracket-game-label {
+      font-size: 10px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--text-muted);
+      padding: 6px 10px 4px;
+      background: var(--card);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+    }
+    .bracket-game-label .status-pill {
+      font-size: 9px;
+      padding: 1px 6px;
+      border-radius: 10px;
+      font-weight: 700;
+      letter-spacing: .06em;
+      text-transform: uppercase;
+    }
+    .pill-done     { background: rgba(249,115,22,.15); color: var(--orange); }
+    .pill-awaiting { background: var(--surface); color: var(--text-muted); border: 1px solid var(--border); }
+    .pill-sched    { background: rgba(59,130,246,.15); color: var(--blue); }
+
+    .bracket-team-row {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 10px;
+      border-bottom: 1px solid var(--border-soft);
+    }
+    .bracket-team-row:last-of-type { border-bottom: none; }
+    .bracket-team-row.winner { background: rgba(249,115,22,.07); }
+    .bracket-team-row.loser  { opacity: .55; }
+    .bracket-team-row.tbd    { opacity: .5; }
+
+    .bracket-team-logo {
+      width: 24px; height: 24px;
+      border-radius: 5px;
+      object-fit: contain;
+      background: var(--card);
+      padding: 2px;
+      flex-shrink: 0;
+    }
+    .bracket-team-logo-placeholder {
+      width: 24px; height: 24px;
+      border-radius: 5px;
+      background: var(--border);
+      display: flex; align-items: center; justify-content: center;
+      font-size: 9px;
+      color: var(--text-muted);
+      font-weight: 700;
+      flex-shrink: 0;
+    }
+    .bracket-team-name {
+      flex: 1;
+      font-size: 13px;
+      font-weight: 600;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+    .bracket-team-name.tbd-name {
+      font-style: italic;
+      color: var(--text-muted);
+      font-weight: 400;
+    }
+    .bracket-team-score {
+      font-family: var(--font-display);
+      font-size: 1.1rem;
+      min-width: 24px;
+      text-align: right;
+      color: var(--text-muted);
+    }
+    .bracket-team-score.winning { color: var(--orange); }
+
+    /* SVG connector between bracket columns */
+    .bracket-svg-connector {
+      overflow: visible;
+      flex-shrink: 0;
+    }
+
+    /* Mobile: scroll hint */
+    .bracket-scroll-hint {
+      display: none;
+      font-size: 12px;
+      color: var(--text-muted);
+      text-align: center;
+      padding: 8px 20px 0;
+    }
+    /* TBD placeholder slot in cards */
+    .tbd-slot {
+      font-style: italic;
+      color: var(--text-muted) !important;
+    }
+    @media (max-width: 640px) {
+      .bracket-scroll-hint { display: block; }
+      .bracket-col, .bracket-col-final { min-width: 170px; }
+      .bracket-game { min-width: 170px; }
+    }
+  </style>
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<section class="page-hero">
+  <div class="container">
+    <div class="page-hero-badge">🎮 Schedule &amp; Results</div>
+    <h1>GAMES</h1>
+    <p id="hero-sub">Full schedule, results and box scores.</p>
+  </div>
+</section>
+
+<div class="page-content">
+  <div class="container">
+
+    <!-- Filters — hidden when bracket view is active -->
+    <div id="filter-area" class="filter-bar">
+      <div class="tab-bar" style="margin-bottom:0">
+        <button class="tab-btn active" data-status="">All</button>
+        <button class="tab-btn" data-status="completed">Results</button>
+        <button class="tab-btn" data-status="scheduled">Upcoming</button>
+      </div>
+      <div class="tab-bar" style="margin-bottom:0" id="type-tabs">
+        <button class="tab-btn active" data-type="">All Types</button>
+        <button class="tab-btn" data-type="regular">Regular</button>
+        <button class="tab-btn" data-type="playoff">Playoffs</button>
+      </div>
+    </div>
+
+    <!-- Playoff Bracket — injected here when playoffs filter is active -->
+    <div id="bracket-output" style="display:none"></div>
+
+    <!-- Regular game list -->
+    <div id="games-output" style="display:flex;flex-direction:column;gap:12px">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Game detail modal -->
+<div class="game-detail-modal" id="game-modal" onclick="closeModal(event)">
+  <div class="game-detail-panel" id="modal-panel">
+    <div class="loading-spinner" style="padding:60px"><div class="spinner"></div></div>
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/nav.js"></script>
+<script src="js/api.js"></script>
+<script>
+// ─────────────────────────────────────────────────────────────
+// State
+// ─────────────────────────────────────────────────────────────
+let filterStatus = '';
+let filterType   = '';
+let allGames     = [];  // all games for the current season (no status/type filter)
+                        // needed for source-game resolution
+
+// ─────────────────────────────────────────────────────────────
+// Init
+// ─────────────────────────────────────────────────────────────
+document.addEventListener('DOMContentLoaded', async () => {
+  await new Promise(r => setTimeout(r, 100));
+
+  const p = Utils.params();
+  if (p.get('game'))   openGame(parseInt(p.get('game')));
+  if (p.get('status')) {
+    filterStatus = p.get('status');
+    document.querySelectorAll('[data-status]').forEach(b => {
+      b.classList.toggle('active', b.dataset.status === filterStatus);
+    });
+  }
+  if (p.get('type') === 'playoff') {
+    filterType = 'playoff';
+    document.querySelectorAll('[data-type]').forEach(b => {
+      b.classList.toggle('active', b.dataset.type === 'playoff');
+    });
+  }
+
+  document.querySelectorAll('[data-status]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-status]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterStatus = btn.dataset.status;
+      renderView();
+    });
+  });
+
+  document.querySelectorAll('[data-type]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-type]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      filterType = btn.dataset.type;
+      renderView();
+    });
+  });
+
+  await loadAllGames();
+});
+
+// ─────────────────────────────────────────────────────────────
+// Data loading — always fetch the full season game list so we
+// can resolve home_source_game_id / away_source_game_id
+// ─────────────────────────────────────────────────────────────
+async function loadAllGames() {
+  const l = State.selectedLeague;
+  const params = {};
+  if (l)          params.league_id = l.id;
+  if (l?.season)  params.season_id = l.season.id;
+  // Note: no status/type filter here — we need ALL games for source resolution
+
+  document.getElementById('games-output').innerHTML =
+    `<div class="loading-spinner"><div class="spinner"></div></div>`;
+
+  try {
+    allGames = await API.games(params);
+    renderView();
+  } catch (e) {
+    document.getElementById('games-output').innerHTML = emptyState('⚠️','Could not load games');
+  }
+}
+
+// ─────────────────────────────────────────────────────────────
+// Decide what to show based on active filters
+// ─────────────────────────────────────────────────────────────
+function renderView() {
+  const bracketEl = document.getElementById('bracket-output');
+  const listEl    = document.getElementById('games-output');
+
+  // When "Playoffs" type filter is active → show bracket + filtered list below
+  if (filterType === 'playoff') {
+    bracketEl.style.display = 'block';
+    renderBracket();
+  } else {
+    bracketEl.style.display = 'none';
+    bracketEl.innerHTML = '';
+  }
+
+  // Apply status + type filters to the list
+  let filtered = allGames;
+  if (filterStatus) filtered = filtered.filter(g => g.status === filterStatus);
+  if (filterType)   filtered = filtered.filter(g => g.game_type === filterType);
+
+  renderGames(filtered, listEl);
+}
+
+// ─────────────────────────────────────────────────────────────
+// Bracket source-game resolution helpers
+// Mirror the exact same logic from admin/seasons/view.php
+// ─────────────────────────────────────────────────────────────
+
+/** Build an id→game lookup map */
+function buildGameMap(games) {
+  const map = {};
+  games.forEach(g => { map[parseInt(g.id)] = g; });
+  return map;
+}
+
+/** Build a position→game lookup map for playoff games */
+function buildBracketMap(games) {
+  const map = {};
+  games.filter(g => g.game_type === 'playoff').forEach(g => {
+    if (g.playoff_position != null) map[parseInt(g.playoff_position)] = g;
+  });
+  return map;
+}
+
+/**
+ * Determine if a playoff game's slots are still TBD.
+ * Returns { homeDone, awayDone, homeLabel, awayLabel, homeTbd, awayTbd }
+ * Mirrors admin renderBracketGame source-resolution logic exactly.
+ */
+function resolveSlots(game, gameById, is8Team) {
+  const homeSourceId   = game.home_source_game_id ? parseInt(game.home_source_game_id) : 0;
+  const awaySourceId   = game.away_source_game_id ? parseInt(game.away_source_game_id) : 0;
+  const homeSourceGame = homeSourceId ? (gameById[homeSourceId] ?? null) : null;
+  const awaySourceGame = awaySourceId ? (gameById[awaySourceId] ?? null) : null;
+
+  const homeSourceDone = !homeSourceGame || homeSourceGame.status === 'completed';
+  const awaySourceDone = !awaySourceGame || awaySourceGame.status === 'completed';
+
+  const homeLabel = (!homeSourceDone && homeSourceGame)
+    ? getSourceLabel(homeSourceGame, is8Team)
+    : (game.home_team || '?');
+  const awayLabel = (!awaySourceDone && awaySourceGame)
+    ? getSourceLabel(awaySourceGame, is8Team)
+    : (game.away_team || '?');
+
+  return {
+    homeSourceDone, awaySourceDone,
+    canEnter: homeSourceDone && awaySourceDone,
+    homeLabel, awayLabel,
+    homeTbd: !homeSourceDone && !!homeSourceGame,
+    awayTbd: !awaySourceDone && !!awaySourceGame,
+  };
+}
+
+/**
+ * Human-readable label for a source game's winner slot.
+ * e.g. "Winner of QF1", "Winner of SF2"
+ * Mirrors PHP getSourceLabel() exactly.
+ */
+function getSourceLabel(sourceGame, is8Team) {
+  const round = sourceGame.playoff_round ?? '';
+  const pos   = parseInt(sourceGame.playoff_position ?? 0);
+  if (round === 'Quarterfinal') return 'Winner of QF' + pos;
+  if (round === 'Semifinal') {
+    const sfNum = is8Team ? (pos - 4) : pos;
+    return 'Winner of SF' + sfNum;
+  }
+  return 'Winner of Game ' + pos;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Render the visual bracket
+// ─────────────────────────────────────────────────────────────
+function renderBracket() {
+  const el = document.getElementById('bracket-output');
+  const playoffGames = allGames.filter(g => g.game_type === 'playoff');
+
+  if (!playoffGames.length) {
+    el.innerHTML = '';
+    return;
+  }
+
+  const gameById   = buildGameMap(allGames);
+  const bracketMap = buildBracketMap(allGames);
+  const total      = playoffGames.length;
+  const is4Team    = total === 3;
+  const is8Team    = total === 7;
+  const is8        = is8Team; // shorthand
+
+  const formatLabel = is4Team ? '4-team' : is8Team ? '8-team' : `${total}-game`;
+  const doneCount   = playoffGames.filter(g => g.status === 'completed').length;
+
+  let bracketHTML = '';
+
+  if (is4Team) {
+    // ── 4-TEAM: Semis (pos 1,2) → Final (pos 3) ──────────
+    bracketHTML = buildBracketHTML([
+      { label: 'Semifinals', games: [bracketMap[1], bracketMap[2]], colClass: 'bracket-col' },
+    ], bracketMap[3], gameById, false);
+
+  } else if (is8Team) {
+    // ── 8-TEAM: QF (1-4) → SF (5,6) → Final (7) ─────────
+    bracketHTML = buildBracketHTML([
+      { label: 'Quarterfinals', games: [bracketMap[1], bracketMap[2], bracketMap[3], bracketMap[4]], colClass: 'bracket-col' },
+      { label: 'Semifinals',    games: [bracketMap[5], bracketMap[6]], colClass: 'bracket-col' },
+    ], bracketMap[7], gameById, true);
+
+  } else {
+    // ── Fallback for non-standard brackets ───────────────
+    bracketHTML = renderFallbackBracket(playoffGames, gameById, is8);
+  }
+
+  el.innerHTML = `
+    <div class="bracket-section">
+      <div class="bracket-section-header">
+        <div>
+          <div class="bracket-section-title">🏆 Playoff <span>Bracket</span></div>
+        </div>
+        <div style="display:flex;align-items:center;gap:8px">
+          <span class="badge badge-muted">${formatLabel} single elimination</span>
+          <span class="badge badge-orange">${doneCount}/${total} played</span>
+        </div>
+      </div>
+      <div class="bracket-scroll-hint">← Scroll to see full bracket →</div>
+      <div class="bracket-scroll">
+        ${bracketHTML}
+      </div>
+    </div>
+  `;
+}
+
+/**
+ * Build the visual bracket HTML for a standard bracket.
+ * @param {Array}  rounds   - array of {label, games[]} for left columns
+ * @param {Object} finalGame - the final game object
+ * @param {Object} gameById  - id→game map
+ * @param {bool}   is8      - is this an 8-team bracket
+ */
+function buildBracketHTML(rounds, finalGame, gameById, is8) {
+  let html = '<div class="bracket-layout">';
+
+  rounds.forEach((round, ri) => {
+    // Column
+    html += `<div class="bracket-col">`;
+    html += `<div class="bracket-col-label">${round.label}</div>`;
+    round.games.forEach(g => {
+      if (g) html += renderBracketGameCard(g, gameById, is8);
+      else   html += '<div class="bracket-game" style="visibility:hidden;height:88px"></div>';
+    });
+    html += `</div>`;
+
+    // Connector SVG between this column and the next
+    html += buildConnectorSVG(round.games.length);
+  });
+
+  // Final column
+  html += `<div class="bracket-col-final">`;
+  html += `<div class="bracket-col-label">Final</div>`;
+  if (finalGame) html += renderBracketGameCard(finalGame, gameById, is8);
+  html += `</div>`;
+
+  html += '</div>';
+  return html;
+}
+
+/**
+ * Build a simple SVG connector between two bracket columns.
+ * Draws lines from each pair of games in the left column to a
+ * midpoint, then forward to the right column.
+ */
+function buildConnectorSVG(gamesCount) {
+  // Each bracket-game card is ~88px tall with 16px gap
+  const cardH = 88;
+  const gap   = 16;
+  const pairH = cardH * 2 + gap;  // height of a pair of games
+  const pairs = gamesCount / 2;
+  const totalH = pairH * pairs + gap * (pairs - 1);
+
+  let svgLines = '';
+  for (let i = 0; i < pairs; i++) {
+    const topY    = i * (pairH + gap) + cardH / 2;
+    const bottomY = topY + cardH + gap;
+    const midY    = (topY + bottomY) / 2;
+    svgLines += `
+      <line x1="0" y1="${topY}"    x2="20" y2="${topY}"    stroke="var(--border)" stroke-width="1.5"/>
+      <line x1="0" y1="${bottomY}" x2="20" y2="${bottomY}" stroke="var(--border)" stroke-width="1.5"/>
+      <line x1="20" y1="${topY}"   x2="20" y2="${bottomY}" stroke="var(--border)" stroke-width="1.5"/>
+      <line x1="20" y1="${midY}"   x2="40" y2="${midY}"    stroke="var(--border)" stroke-width="1.5"/>
+    `;
+  }
+
+  return `
+    <svg class="bracket-svg-connector" width="40" height="${totalH || 180}"
+         style="align-self:stretch;margin-top:${22}px">
+      ${svgLines}
+    </svg>
+  `;
+}
+
+/**
+ * Render a single bracket game card.
+ * Full placeholder logic: if source games aren't done, show "Winner of SF1" etc.
+ */
+function renderBracketGameCard(g, gameById, is8) {
+  if (!g) return '';
+
+  const done  = g.status === 'completed';
+  const hw    = done && parseInt(g.home_score) > parseInt(g.away_score);
+  const aw    = done && parseInt(g.away_score) > parseInt(g.home_score);
+
+  const slots = resolveSlots(g, gameById, is8);
+
+  // Status pill
+  let statusPill = '';
+  if (done) {
+    statusPill = '<span class="status-pill pill-done">Final</span>';
+  } else if (slots.canEnter) {
+    statusPill = '<span class="status-pill pill-sched">Scheduled</span>';
+  } else {
+    statusPill = '<span class="status-pill pill-awaiting">Awaiting</span>';
+  }
+
+  const cardClasses = [
+    'bracket-game',
+    done          ? 'done'      : '',
+    !slots.canEnter && !done ? 'locked' : '',
+    done          ? 'clickable' : '',
+  ].filter(Boolean).join(' ');
+
+  const clickAttr = done ? `onclick="openGame(${g.id})"` : '';
+
+  // Home row
+  const homeRowClass = done
+    ? (hw ? 'winner' : 'loser')
+    : (slots.homeTbd ? 'tbd' : '');
+  const homeLogo     = !slots.homeTbd ? bracketLogo(g.home_logo, g.home_team) : '';
+  const homeNameCls  = slots.homeTbd ? 'bracket-team-name tbd-name' : 'bracket-team-name';
+  const homeScore    = done ? `<span class="bracket-team-score ${hw ? 'winning' : ''}">${g.home_score}</span>` : '<span class="bracket-team-score">—</span>';
+
+  // Away row
+  const awayRowClass = done
+    ? (aw ? 'winner' : 'loser')
+    : (slots.awayTbd ? 'tbd' : '');
+  const awayLogo     = !slots.awayTbd ? bracketLogo(g.away_logo, g.away_team) : '';
+  const awayNameCls  = slots.awayTbd ? 'bracket-team-name tbd-name' : 'bracket-team-name';
+  const awayScore    = done ? `<span class="bracket-team-score ${aw ? 'winning' : ''}">${g.away_score}</span>` : '<span class="bracket-team-score">—</span>';
+
+  return `
+    <div class="${cardClasses}" ${clickAttr} title="${done ? 'Click to view box score' : ''}">
+      <div class="bracket-game-label">
+        <span>${g.playoff_round ?? ''}</span>
+        ${statusPill}
+      </div>
+      <div class="bracket-team-row ${homeRowClass}">
+        ${homeLogo}
+        <span class="${homeNameCls}" title="${slots.homeLabel}">${slots.homeLabel}</span>
+        ${homeScore}
+      </div>
+      <div class="bracket-team-row ${awayRowClass}">
+        ${awayLogo}
+        <span class="${awayNameCls}" title="${slots.awayLabel}">${slots.awayLabel}</span>
+        ${awayScore}
+      </div>
+    </div>
+  `;
+}
+
+function bracketLogo(logo, name) {
+  if (logo) return `<img src="${logo}" alt="${name}" class="bracket-team-logo">`;
+  return `<div class="bracket-team-logo-placeholder">${Utils.getInitials(name)}</div>`;
+}
+
+/** Fallback for non-standard bracket sizes */
+function renderFallbackBracket(games, gameById, is8) {
+  return `<div style="display:flex;flex-direction:column;gap:12px;max-width:420px">
+    ${games.map(g => renderBracketGameCard(g, gameById, is8)).join('')}
+  </div>`;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Game list (grouped by date)
+// ─────────────────────────────────────────────────────────────
+function renderGames(games, el) {
+  if (!games.length) { el.innerHTML = emptyState('🎮','No games found'); return; }
+
+  const gameById = buildGameMap(allGames);
+  const is8 = allGames.filter(g => g.game_type === 'playoff').length === 7;
+
+  const byDate = {};
+  games.forEach(g => {
+    const d = g.game_date || 'TBD';
+    if (!byDate[d]) byDate[d] = [];
+    byDate[d].push(g);
+  });
+
+  el.innerHTML = Object.entries(byDate).map(([date, gms]) => `
+    <div style="margin-bottom:8px">
+      <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;
+                  letter-spacing:.1em;padding:8px 0;border-bottom:1px solid var(--border);margin-bottom:10px">
+        ${date !== 'TBD' ? Utils.formatDate(date, {weekday:'long',year:'numeric',month:'long',day:'numeric'}) : 'Date TBD'}
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        ${gms.map((g, i) => renderGameCard(g, i, gameById, is8)).join('')}
+      </div>
+    </div>
+  `).join('');
+}
+
+/**
+ * Render a single game list card.
+ * For playoff games, applies the same source-resolution logic:
+ * unresolved slots show "Winner of SF1" etc. instead of actual team names.
+ */
+function renderGameCard(g, i, gameById, is8) {
+  const isCompleted  = g.status === 'completed';
+  const isPlayoff    = g.game_type === 'playoff';
+  const hw = isCompleted && g.home_score > g.away_score;
+  const aw = isCompleted && g.away_score > g.home_score;
+
+  // Resolve placeholders for playoff games
+  let homeDisplay = g.home_team;
+  let awayDisplay = g.away_team;
+  let homeLogo    = g.home_logo;
+  let awayLogo    = g.away_logo;
+  let homeIsTbd   = false;
+  let awayIsTbd   = false;
+
+  if (isPlayoff && !isCompleted && (g.home_source_game_id || g.away_source_game_id)) {
+    const slots = resolveSlots(g, gameById, is8);
+    homeDisplay = slots.homeLabel;
+    awayDisplay = slots.awayLabel;
+    homeIsTbd   = slots.homeTbd;
+    awayIsTbd   = slots.awayTbd;
+    if (homeIsTbd) homeLogo = null;
+    if (awayIsTbd) awayLogo = null;
+  }
+
+  const homeName = Utils.abbrevTeam(homeDisplay);
+  const awayName = Utils.abbrevTeam(awayDisplay);
+
+  // Status badge — for playoff games use source-resolution to determine if truly scheduled
+  let statusBadge;
+  if (isCompleted) {
+    statusBadge = '<span class="badge badge-muted">Final</span>';
+  } else if (isPlayoff && (g.home_source_game_id || g.away_source_game_id)) {
+    const slots = resolveSlots(g, gameById, is8);
+    statusBadge = slots.canEnter
+      ? '<span class="badge badge-green">Scheduled</span>'
+      : '<span class="badge badge-muted">Awaiting</span>';
+  } else {
+    statusBadge = '<span class="badge badge-green">Scheduled</span>';
+  }
+
+  return `
+    <div class="game-card" style="animation-delay:${i * 0.04}s"
+         onclick="${isCompleted ? `openGame(${g.id})` : ''}">
+      <div class="game-card-meta">
+        <span class="game-date">${g.game_time ? Utils.formatTime(g.game_time) + ' · ' : ''}${Utils.formatDate(g.game_date)}</span>
+        <div class="game-card-badges">
+          ${Utils.gameTypeBadge(g.game_type, g.playoff_round)}
+          ${statusBadge}
+        </div>
+      </div>
+      <div class="game-body">
+        <div class="game-team">
+          ${homeLogo
+            ? `<img src="${homeLogo}" alt="${homeDisplay}" class="team-logo-sm">`
+            : `<div class="team-logo-placeholder">${homeIsTbd ? '?' : Utils.getInitials(homeDisplay)}</div>`}
+          <span class="team-name-sm ${homeIsTbd ? 'tbd-slot' : ''}"
+                title="${homeDisplay}">${homeName}</span>
+        </div>
+        <div class="game-score">
+          ${isCompleted
+            ? `<span class="score-val ${hw?'winner':''}">${g.home_score}</span>
+               <span class="score-sep">:</span>
+               <span class="score-val ${aw?'winner':''}">${g.away_score}</span>`
+            : `<span class="game-time-big">VS</span>`}
+        </div>
+        <div class="game-team away">
+          ${awayLogo
+            ? `<img src="${awayLogo}" alt="${awayDisplay}" class="team-logo-sm">`
+            : `<div class="team-logo-placeholder">${awayIsTbd ? '?' : Utils.getInitials(awayDisplay)}</div>`}
+          <span class="team-name-sm ${awayIsTbd ? 'tbd-slot' : ''}"
+                title="${awayDisplay}">${awayName}</span>
+        </div>
+      </div>
+      ${isCompleted ? `<div style="text-align:center;font-size:11px;color:var(--orange);margin-top:10px">Tap to see box score →</div>` : ''}
+    </div>
+  `;
+}
+
+// ─────────────────────────────────────────────────────────────
+// Game detail modal
+// ─────────────────────────────────────────────────────────────
+async function openGame(id) {
+  const modal = document.getElementById('game-modal');
+  const panel = document.getElementById('modal-panel');
+  modal.classList.add('open');
+  panel.innerHTML = `<div class="loading-spinner" style="padding:60px"><div class="spinner"></div></div>`;
+
+  try {
+    const data = await API.game(id);
+    renderModal(data);
+  } catch (e) {
+    panel.innerHTML = `<div style="padding:40px;text-align:center;color:var(--text-muted)">Could not load game data</div>`;
+  }
+}
+
+function renderModal(data) {
+  const g  = data.game;
+  const hw = g.home_score > g.away_score;
+  const aw = g.away_score > g.home_score;
+  const panel = document.getElementById('modal-panel');
+
+  const playerRow = p => `
+    <tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:8px">
+          ${Utils.avatar(p.photo, `${p.first_name} ${p.last_name}`, 28)}
+          <span style="font-weight:600">${p.first_name} ${p.last_name}</span>
+        </div>
+      </td>
+      <td style="color:var(--orange);font-weight:700">${p.total_points}</td>
+      <td>${p.two_points_made}/${p.two_points_attempted || 0}</td>
+      <td>${p.three_points_made}/${p.three_points_attempted || 0}</td>
+      <td>${p.free_throws_made}/${p.free_throws_attempted || 0}</td>
+    </tr>
+  `;
+
+  panel.innerHTML = `
+    <div style="position:relative">
+      <button class="modal-close" onclick="closeModal()" title="Close">✕</button>
+      <div class="game-detail-scoreboard">
+        <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em">
+          ${g.season_name} · ${g.league_name} · ${Utils.formatDate(g.game_date)}
+        </div>
+        <div style="margin-top:8px">${Utils.gameTypeBadge(g.game_type, g.playoff_round)}</div>
+        <div class="final-score">
+          <div class="final-team">
+            ${g.home_logo ? `<img src="${g.home_logo}" style="width:56px;height:56px;object-fit:contain;margin:0 auto 8px;display:block">` : ''}
+            <div class="final-team-name">${g.home_team}</div>
+          </div>
+          <div style="display:flex;align-items:center;gap:16px">
+            <span class="final-score-num ${hw?'winner-score':''}">${g.home_score ?? '—'}</span>
+            <span class="final-score-sep">:</span>
+            <span class="final-score-num ${aw?'winner-score':''}">${g.away_score ?? '—'}</span>
+          </div>
+          <div class="final-team">
+            ${g.away_logo ? `<img src="${g.away_logo}" style="width:56px;height:56px;object-fit:contain;margin:0 auto 8px;display:block">` : ''}
+            <div class="final-team-name">${g.away_team}</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text-muted)">Final Score</div>
+      </div>
+
+      ${data.home_stats.length ? `
+        <div style="padding:20px 24px">
+          <h3 style="font-family:var(--font-display);letter-spacing:.05em;margin-bottom:14px">${g.home_team}</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Player</th><th>PTS</th><th>2PM/A</th><th>3PM/A</th><th>FTM/A</th></tr></thead>
+              <tbody>${data.home_stats.map(playerRow).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+      ` : ''}
+
+      ${data.away_stats.length ? `
+        <div style="padding:4px 24px 24px">
+          <h3 style="font-family:var(--font-display);letter-spacing:.05em;margin-bottom:14px">${g.away_team}</h3>
+          <div class="table-wrap">
+            <table>
+              <thead><tr><th>Player</th><th>PTS</th><th>2PM/A</th><th>3PM/A</th><th>FTM/A</th></tr></thead>
+              <tbody>${data.away_stats.map(playerRow).join('')}</tbody>
+            </table>
+          </div>
+        </div>
+      ` : ''}
+    </div>
+  `;
+}
+
+function closeModal(e) {
+  if (!e || e.target === document.getElementById('game-modal') || e.target.classList.contains('modal-close')) {
+    document.getElementById('game-modal').classList.remove('open');
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MVP — Battle 3x3</title>
+  <link rel="stylesheet" href="css/battle.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<section class="page-hero">
+  <div class="container">
+    <div class="page-hero-badge">👑 Most Valuable</div>
+    <h1>MVP<br><span style="color:var(--orange)">RANKINGS</span></h1>
+    <p>Season MVP race and all-time award winners.</p>
+  </div>
+</section>
+
+<div class="page-content">
+  <div class="container">
+
+    <!-- MVP Race -->
+    <div class="section-header animate-up">
+      <h2 class="section-title">Current <span>MVP Race</span></h2>
+      <span id="race-label" style="font-size:13px;color:var(--text-muted)"></span>
+    </div>
+
+    <!-- Top 3 podium -->
+    <div id="mvp-podium" style="display:grid;grid-template-columns:repeat(3,1fr);gap:20px;margin-bottom:32px">
+      <div class="loading-spinner" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Full race table -->
+    <div id="mvp-table">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Official MVPs -->
+    <div class="section-header animate-up mt-40">
+      <h2 class="section-title">Official <span>MVP Awards</span></h2>
+    </div>
+    <div id="official-mvps">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/nav.js"></script>
+<script src="js/api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  await new Promise(r => setTimeout(r, 100));
+  loadMVP();
+});
+
+async function loadMVP() {
+  const l = State.selectedLeague;
+  if (!l) {
+    document.getElementById('mvp-podium').innerHTML = `<div style="grid-column:1/-1">${emptyState('🏀','Select a league')}</div>`;
+    document.getElementById('mvp-table').innerHTML = '';
+    document.getElementById('official-mvps').innerHTML = '';
+    return;
+  }
+  document.getElementById('race-label').textContent = `${l.name}${l.season ? ' · ' + l.season.name : ''}`;
+
+  try {
+    const data = await API.mvp(l.id, l.season?.id);
+    renderPodium(data.race || []);
+    renderTable(data.race || []);
+    renderOfficial(data.official || []);
+  } catch (e) {
+    document.getElementById('mvp-podium').innerHTML = `<div style="grid-column:1/-1">${emptyState('⚠️','Could not load MVP data')}</div>`;
+  }
+}
+
+const MEDALS = ['🥇','🥈','🥉'];
+
+function renderPodium(race) {
+  const el = document.getElementById('mvp-podium');
+  const top3 = race.slice(0, 3);
+  if (!top3.length) {
+    el.innerHTML = `<div style="grid-column:1/-1">${emptyState('👑','No data yet — season may not have started')}</div>`;
+    return;
+  }
+
+  el.innerHTML = [0,1,2].map(i => {
+    const p = top3[i];
+    if (!p) return `<div class="card" style="border-style:dashed"><div class="card-body" style="text-align:center;color:var(--text-muted);padding:40px 20px">${i+1}${i===0?'st':i===1?'nd':'rd'}</div></div>`;
+    const name = `${p.first_name} ${p.last_name}`;
+    const photo = p.photo
+      ? `<img src="${p.photo}" alt="${name}" style="width:80px;height:80px;border-radius:50%;object-fit:cover;object-position:top;border:3px solid ${i===0?'var(--gold)':'var(--border)'};">`
+      : `<div style="width:80px;height:80px;border-radius:50%;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:2rem;border:3px solid ${i===0?'var(--gold)':'var(--border)'}">🏀</div>`;
+    return `
+      <a href="player?id=${p.id}" class="card ${i===0?'':''}">
+        <div class="card-body" style="text-align:center;padding:28px 20px">
+          <div style="font-size:2rem;margin-bottom:12px">${MEDALS[i]}</div>
+          <div style="display:flex;justify-content:center;margin-bottom:14px">${photo}</div>
+          <div style="font-family:var(--font-display);font-size:1.2rem;letter-spacing:.03em;margin-bottom:4px">${name.toUpperCase()}</div>
+          <div style="font-size:12px;color:var(--text-secondary);margin-bottom:16px">${p.team_name}</div>
+          <div style="font-family:var(--font-display);font-size:3rem;color:${i===0?'var(--gold)':i===1?'var(--text-secondary)':'var(--orange)'};line-height:1">${p.ppg}</div>
+          <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-top:4px">PPG</div>
+          <div style="display:flex;justify-content:center;gap:16px;margin-top:16px;padding-top:16px;border-top:1px solid var(--border)">
+            <div style="text-align:center">
+              <div style="font-weight:700">${p.total_points}</div>
+              <div style="font-size:10px;color:var(--text-muted)">PTS</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-weight:700">${p.total_3pt}</div>
+              <div style="font-size:10px;color:var(--text-muted)">3PM</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-weight:700">${p.games_played}</div>
+              <div style="font-size:10px;color:var(--text-muted)">GP</div>
+            </div>
+          </div>
+        </div>
+      </a>
+    `;
+  }).join('');
+
+  // Gold border for #1
+  el.querySelector('a')?.setAttribute('style', el.querySelector('a')?.getAttribute('style') + ';border-color:var(--gold);box-shadow:0 0 32px rgba(245,158,11,0.2)');
+}
+
+function renderTable(race) {
+  const el = document.getElementById('mvp-table');
+  if (race.length <= 3) { el.innerHTML = ''; return; }
+
+  const rest = race.slice(3);
+  el.innerHTML = `
+    <div class="table-wrap animate-up">
+      <table>
+        <thead><tr>
+          <th>#</th><th>Player</th><th>Team</th>
+          <th>GP</th><th>PTS</th>
+          <th style="color:var(--orange)">PPG</th>
+          <th>3PM</th><th>FTM</th>
+        </tr></thead>
+        <tbody>
+          ${rest.map((p, i) => {
+            const name = `${p.first_name} ${p.last_name}`;
+            return `
+              <tr onclick="location.href='player?id=${p.id}'" style="cursor:pointer">
+                <td class="rank-cell">${i+4}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    ${Utils.avatar(p.photo, name, 36)}
+                    <strong>${name}</strong>
+                  </div>
+                </td>
+                <td style="color:var(--text-secondary)">${p.team_name}</td>
+                <td>${p.games_played}</td>
+                <td style="font-weight:700">${p.total_points}</td>
+                <td style="color:var(--orange);font-weight:700">${p.ppg}</td>
+                <td>${p.total_3pt}</td>
+                <td>${p.total_ft}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+
+function renderOfficial(official) {
+  const el = document.getElementById('official-mvps');
+  if (!official.length) {
+    el.innerHTML = emptyState('🏆','No official MVPs awarded yet');
+    return;
+  }
+
+  el.innerHTML = `<div style="display:flex;flex-direction:column;gap:16px">` +
+    official.map(o => {
+      const regCard = o.reg_mvp_id ? `
+        <div class="mvp-card">
+          ${o.reg_mvp_photo
+            ? `<img src="${o.reg_mvp_photo}" class="mvp-card-photo" alt="${o.reg_mvp_fn}">`
+            : `<div class="mvp-card-avatar">🏀</div>`}
+          <div>
+            <div class="mvp-label">Regular Season MVP</div>
+            <div class="mvp-name">${o.reg_mvp_fn.toUpperCase()} ${o.reg_mvp_ln.toUpperCase()}</div>
+            <div class="mvp-team">${o.season_name} · ${o.league_name}</div>
+          </div>
+        </div>
+      ` : '';
+      const poCard = o.po_mvp_id ? `
+        <div class="mvp-card" style="border-color:var(--orange)">
+          ${o.po_mvp_photo
+            ? `<img src="${o.po_mvp_photo}" class="mvp-card-photo" alt="${o.po_mvp_fn}">`
+            : `<div class="mvp-card-avatar">🏀</div>`}
+          <div>
+            <div class="mvp-label" style="color:var(--orange)">Playoffs MVP</div>
+            <div class="mvp-name">${o.po_mvp_fn.toUpperCase()} ${o.po_mvp_ln.toUpperCase()}</div>
+            <div class="mvp-team">${o.season_name} · ${o.league_name}</div>
+          </div>
+        </div>
+      ` : '';
+      return `
+        <div>
+          <div style="font-size:12px;font-weight:700;color:var(--text-muted);text-transform:uppercase;letter-spacing:.1em;margin-bottom:12px">${o.season_name}</div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+            ${regCard || ''}
+            ${poCard  || ''}
+          </div>
+        </div>
+      `;
+    }).join('') + `</div>`;
+}
+</script>
+
+<style>
+@media (max-width: 600px) {
+  #mvp-podium { grid-template-columns: 1fr !important; }
+}
+@media (max-width: 768px) {
+  #official-mvps .grid2 { grid-template-columns: 1fr; }
+}
+</style>
+</body>
+</html>

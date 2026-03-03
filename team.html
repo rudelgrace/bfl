@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Team — Battle 3x3</title>
+  <link rel="stylesheet" href="css/battle.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<section class="page-hero" id="team-hero">
+  <div class="container" id="team-hero-content">
+    <div class="loading-spinner"><div class="spinner"></div></div>
+  </div>
+</section>
+
+<div class="page-content" style="padding-top:32px">
+  <div class="container">
+
+    <!-- Season record -->
+    <div id="record-row" style="display:none;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:40px"></div>
+
+    <!-- Roster -->
+    <div class="section-header animate-up">
+      <h2 class="section-title">Roster</h2>
+    </div>
+    <div id="roster-output">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Recent Games -->
+    <div class="section-header animate-up mt-40">
+      <h2 class="section-title">Recent <span>Games</span></h2>
+    </div>
+    <div id="games-output" style="display:flex;flex-direction:column;gap:12px">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/nav.js"></script>
+<script src="js/api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const id = new URLSearchParams(location.search).get('id');
+  if (!id) { location.href = 'teams'; return; }
+  await new Promise(r => setTimeout(r, 80));
+  const sid = State.selectedLeague?.season?.id;
+  loadTeam(parseInt(id), sid);
+});
+
+async function loadTeam(id, sid) {
+  try {
+    const data = await API.team(id, sid);
+    renderHero(data);
+    renderRecord(data.standings);
+    renderRoster(data.roster);
+    renderGames(data.games, id);
+  } catch (e) {
+    document.getElementById('team-hero-content').innerHTML = emptyState('⚠️','Team not found');
+  }
+}
+
+function renderHero(data) {
+  const t = data.team;
+  document.title = `${t.name} — Battle 3x3`;
+  const logo = t.logo
+    ? `<img src="${t.logo}" alt="${t.name}" style="width:100px;height:100px;object-fit:contain;border-radius:16px;background:rgba(255,255,255,0.05);padding:8px;border:2px solid var(--border)">`
+    : `<div style="width:100px;height:100px;border-radius:16px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:3.5rem;border:2px solid var(--border)">🏀</div>`;
+
+  document.getElementById('team-hero-content').innerHTML = `
+    <a href="teams" style="font-size:13px;color:var(--text-muted);margin-bottom:20px;display:inline-flex;align-items:center;gap:4px">← Back to Teams</a>
+    <div style="display:flex;align-items:center;gap:24px;flex-wrap:wrap">
+      ${logo}
+      <div>
+        <div style="font-size:12px;color:var(--text-muted);margin-bottom:6px;text-transform:uppercase;letter-spacing:.1em">${t.league_name}</div>
+        <h1 style="font-family:var(--font-display);font-size:clamp(2.5rem,6vw,4rem);letter-spacing:.03em;line-height:1">${t.name.toUpperCase()}</h1>
+        <div style="margin-top:10px;display:flex;gap:8px;flex-wrap:wrap">
+          <span class="badge badge-blue">${data.roster.length} Players</span>
+        </div>
+      </div>
+    </div>
+  `;
+}
+
+function renderRecord(s) {
+  if (!s) return;
+  const el = document.getElementById('record-row');
+  el.style.display = 'grid';
+  const rawDiff = s.points_diff ?? s.point_differential ?? null;
+  const diff = rawDiff === null ? '—' : (rawDiff >= 0 ? '+' : '') + rawDiff;
+  el.innerHTML = [
+    ['Wins', s.wins, 'text-green'],
+    ['Losses', s.losses, 'text-red'],
+    ['Pts For', s.points_for, 'text-orange'],
+    ['+/- Diff', diff, s.points_diff>=0?'text-green':'text-red'],
+  ].map(([l,v,c]) => `
+    <div class="card">
+      <div class="big-stat">
+        <span class="value ${c}" style="color:inherit">${v}</span>
+        <span class="label">${l}</span>
+      </div>
+    </div>
+  `).join('');
+}
+
+function renderRoster(roster) {
+  const el = document.getElementById('roster-output');
+  if (!roster.length) { el.innerHTML = emptyState('👥','No roster data'); return; }
+  el.innerHTML = `
+    <div class="grid-4 stagger">
+      ${roster.map((p, i) => {
+        const name = `${p.first_name} ${p.last_name}`;
+        const photo = p.photo
+          ? `<img src="${p.photo}" alt="${name}" class="player-card-photo">`
+          : `<div class="player-card-photo-placeholder">🏀</div>`;
+        const statusBadge = p.roster_status !== 'active'
+          ? `<span class="badge badge-red" style="font-size:9px">${p.roster_status}</span>`
+          : '';
+        return `
+          <a href="player?id=${p.id}" class="player-card" style="animation-delay:${i*0.05}s">
+            ${photo}
+            <div class="player-card-body">
+              <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+                <div class="player-card-jersey">#${p.jersey_number}</div>
+                ${statusBadge}
+              </div>
+              <div class="player-card-name">${name}</div>
+              <div class="player-card-team" style="margin-bottom:0">
+                ${p.position || ''}${p.height ? ` · ${p.height}` : ''}
+                ${p.age ? ` · ${p.age}y` : ''}
+              </div>
+            </div>
+          </a>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
+function renderGames(games, teamId) {
+  const el = document.getElementById('games-output');
+  if (!games.length) { el.innerHTML = emptyState('🎮','No games found'); return; }
+  el.innerHTML = games.map((g, i) => {
+    const isHome = g.home_id == teamId;
+    const myScore  = isHome ? g.home_score : g.away_score;
+    const oppScore = isHome ? g.away_score : g.home_score;
+    const oppName  = isHome ? g.away_team  : g.home_team;
+    const oppLogo  = isHome ? g.away_logo  : g.home_logo;
+    const won = g.status === 'completed' && myScore > oppScore;
+    const lost= g.status === 'completed' && myScore < oppScore;
+    const resultBadge = g.status === 'completed'
+      ? `<span class="badge ${won?'badge-green':lost?'badge-red':'badge-muted'}">${won?'W':lost?'L':'T'}</span>`
+      : `<span class="badge badge-blue">Scheduled</span>`;
+
+    return `
+      <div class="game-card" style="animation-delay:${i*0.05}s">
+        <div class="game-card-meta">
+          <span class="game-date">${Utils.formatDate(g.game_date)}${g.game_time ? ' · ' + Utils.formatTime(g.game_time) : ''}</span>
+          <div style="display:flex;gap:6px">
+            ${resultBadge}
+            ${Utils.gameTypeBadge(g.game_type, g.playoff_round)}
+          </div>
+        </div>
+        <div class="game-body">
+          <div class="game-team">
+            <div style="width:40px;height:40px;border-radius:8px;background:var(--orange-glow);display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;color:var(--orange)">US</div>
+            <span class="team-name-sm">${isHome ? g.home_team : g.away_team}</span>
+          </div>
+          <div class="game-score">
+            ${g.status === 'completed'
+              ? `<span class="score-val ${won?'winner':''}">${myScore ?? '—'}</span>
+                 <span class="score-sep">:</span>
+                 <span class="score-val ${lost?'winner':''}">${oppScore ?? '—'}</span>`
+              : `<span class="game-time-big">VS</span>`
+            }
+          </div>
+          <div class="game-team away">
+            ${Utils.teamLogo(oppLogo, oppName)}
+            <span class="team-name-sm">${oppName}</span>
+          </div>
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+</script>
+
+<style>
+@media (max-width: 768px) {
+  #record-row { grid-template-columns: repeat(2,1fr) !important; }
+  #roster-output .grid-4 { grid-template-columns: repeat(2,1fr) !important; }
+}
+</style>
+</body>
+</html>

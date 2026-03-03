@@ -1,0 +1,170 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Teams — Battle 3x3</title>
+  <link rel="stylesheet" href="css/battle.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<section class="page-hero">
+  <div class="container">
+    <div class="page-hero-badge">🏆 Teams</div>
+    <h1>TEAMS</h1>
+    <p id="hero-subtitle">League standings, rosters and team stats.</p>
+  </div>
+</section>
+
+<div class="page-content">
+  <div class="container">
+
+    <!-- Standings -->
+    <div class="section-header animate-up" style="margin-bottom:20px">
+      <h2 class="section-title"><span>Standings</span></h2>
+      <span id="season-label" style="font-size:13px;color:var(--text-muted)"></span>
+    </div>
+    <div id="standings-output">
+      <div class="loading-spinner"><div class="spinner"></div></div>
+    </div>
+
+    <!-- Team Cards -->
+    <div class="section-header animate-up mt-40">
+      <h2 class="section-title">All <span>Teams</span></h2>
+    </div>
+    <div id="teams-grid" class="grid-3 stagger">
+      <div class="loading-spinner" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/nav.js"></script>
+<script src="js/api.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  await new Promise(r => setTimeout(r, 100));
+  loadTeams();
+});
+
+async function loadTeams() {
+  const l = State.selectedLeague;
+  if (!l) {
+    document.getElementById('standings-output').innerHTML = emptyState('🏀','Select a league');
+    document.getElementById('teams-grid').innerHTML = '';
+    return;
+  }
+  const sid = l.season?.id;
+  document.getElementById('hero-subtitle').textContent = `${l.name} · ${l.season?.name || 'All Time'}`;
+  if (l.season) document.getElementById('season-label').textContent = l.season.name;
+
+  try {
+    const [teams, standings] = await Promise.all([
+      API.teams(l.id, sid),
+      sid ? API.standings(l.id, sid) : Promise.resolve([]),
+    ]);
+
+    renderStandings(standings, teams, l);
+    renderTeamCards(teams, standings);
+  } catch (e) {
+    document.getElementById('standings-output').innerHTML = emptyState('⚠️','Failed to load team data');
+  }
+}
+
+function renderStandings(standings, teams, league) {
+  const el = document.getElementById('standings-output');
+  if (!standings.length) {
+    el.innerHTML = emptyState('📊','No standings data for this season');
+    return;
+  }
+  const pc = standings[0]?.playoff_teams_count || 4;
+  el.innerHTML = `
+    <div class="table-wrap animate-up">
+      <table class="standings-table">
+        <thead><tr>
+          <th style="width:40px">#</th>
+          <th>Team</th>
+          <th>W</th>
+          <th>L</th>
+          <th class="hide-mobile">PF</th>
+          <th class="hide-mobile">PA</th>
+          <th class="hide-mobile">+/-</th>
+          <th class="hide-mobile">Status</th>
+        </tr></thead>
+        <tbody>
+          ${standings.map((s, i) => {
+            const inPlayoffs = i < pc;
+            const diff = (s.points_diff >= 0 ? '+' : '') + s.points_diff;
+            return `
+              <tr onclick="location.href='team?id=${s.team_id}'" style="cursor:pointer">
+                <td class="rank-cell ${inPlayoffs ? 'top' : ''}">
+                  ${inPlayoffs ? '🟠' : i+1}
+                </td>
+                <td>
+                  <div class="team-name-cell">
+                    ${Utils.teamLogo(s.team_logo, s.team_name)}
+                    <strong title="${s.team_name}">${Utils.abbrevTeam(s.team_name, 16)}</strong>
+                  </div>
+                </td>
+                <td style="color:var(--green);font-weight:700;font-size:1.1em">${s.wins}</td>
+                <td style="color:var(--red)">${s.losses}</td>
+                <td class="hide-mobile">${s.points_for}</td>
+                <td class="hide-mobile">${s.points_against}</td>
+                <td class="hide-mobile" style="color:${s.points_diff>=0?'var(--green)':'var(--red)'};font-weight:600">${diff}</td>
+                <td class="hide-mobile">${inPlayoffs ? '<span class="badge badge-orange">Playoffs</span>' : '<span class="badge badge-muted">Regular</span>'}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+    <div style="margin-top:8px;font-size:11px;color:var(--text-muted)">🟠 = Playoff-qualifying position</div>
+  `;
+}
+
+function renderTeamCards(teams, standings) {
+  const el = document.getElementById('teams-grid');
+  if (!teams.length) { el.innerHTML = `<div style="grid-column:1/-1">${emptyState('🏆','No teams found')}</div>`; return; }
+  const standMap = Object.fromEntries(standings.map(s => [s.team_id, s]));
+
+  el.innerHTML = teams.map((t, i) => {
+    const s = standMap[t.id];
+    const logo = t.logo
+      ? `<img src="${t.logo}" alt="${t.name}" style="width:80px;height:80px;object-fit:contain;border-radius:12px;background:var(--surface);padding:8px">`
+      : `<div style="width:80px;height:80px;border-radius:12px;background:var(--surface);display:flex;align-items:center;justify-content:center;font-size:2rem">🏀</div>`;
+    return `
+      <a href="team?id=${t.id}" class="card" style="animation-delay:${i*0.06}s;cursor:pointer;display:block">
+        <div class="card-body" style="display:flex;gap:20px;align-items:center">
+          ${logo}
+          <div style="flex:1">
+            <div style="font-family:var(--font-display);font-size:1.3rem;letter-spacing:0.04em;margin-bottom:6px">${t.name}</div>
+            <div style="font-size:12px;color:var(--text-muted);margin-bottom:12px">${t.player_count} Players · ${t.league_name}</div>
+            ${s ? `
+              <div style="display:flex;gap:16px">
+                <div style="text-align:center">
+                  <div style="font-family:var(--font-display);font-size:1.8rem;color:var(--green);line-height:1">${s.wins}</div>
+                  <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">W</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-family:var(--font-display);font-size:1.8rem;color:var(--red);line-height:1">${s.losses}</div>
+                  <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">L</div>
+                </div>
+                <div style="text-align:center">
+                  <div style="font-family:var(--font-display);font-size:1.8rem;color:var(--orange);line-height:1">${s.points_for}</div>
+                  <div style="font-size:10px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">PF</div>
+                </div>
+              </div>
+            ` : `<span class="badge badge-muted">No season data</span>`}
+          </div>
+        </div>
+      </a>
+    `;
+  }).join('');
+}
+</script>
+</body>
+</html>

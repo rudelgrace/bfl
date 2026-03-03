@@ -1,0 +1,77 @@
+# ══════════════════════════════════════════════════════════════════════
+# THE BATTLE 3x3 — Apache Configuration
+# Works at domain root (domain.com/) or a subdirectory (domain.com/battle3x3/)
+# No RewriteBase needed — all admin routing uses a physical /bfl-admin/ directory.
+# ══════════════════════════════════════════════════════════════════════
+
+Options -Indexes
+
+DirectoryIndex index.html index.php
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+
+    # ── Block direct access to PHP internals ──────────────────────────────────
+    RewriteRule ^(core|config|app|includes)(/|$) - [F,L]
+
+    # ── Existing file/dir → serve as-is ──────────────────────────────────────
+    # (CSS, JS, images, actual .html files, PHP files)
+    RewriteCond %{REQUEST_FILENAME} -f [OR]
+    RewriteCond %{REQUEST_FILENAME} -d
+    RewriteRule ^ - [L]
+
+    # ── Clean Public URLs ─────────────────────────────────────────────────────
+    # Maps /players → players.html, etc.
+    # Relative to this file's directory — works in root & subdirectory installs.
+    RewriteRule ^players/?$  players.html  [L,QSA]
+    RewriteRule ^teams/?$    teams.html    [L,QSA]
+    RewriteRule ^games/?$    games.html    [L,QSA]
+    RewriteRule ^mvp/?$      mvp.html      [L,QSA]
+    RewriteRule ^about/?$    battle.html   [L,QSA]
+    RewriteRule ^player/?$   player.html   [L,QSA]
+    RewriteRule ^team/?$     team.html     [L,QSA]
+
+    # ── Legacy /login clean URL ───────────────────────────────────────────────
+    RewriteRule ^login/?$    admin/login.php [L,QSA]
+
+    # ── Admin sub-pages under /bfl-admin/ ────────────────────────────────────
+    # /bfl-admin/ root is served by the physical bfl-admin/index.php (no rule needed).
+    # /bfl-admin/dashboard → admin dashboard
+    RewriteRule ^bfl-admin/dashboard/?$  admin/index.php  [L,QSA]
+    # /bfl-admin/anything → admin/anything  (internal admin navigation fallback)
+    RewriteRule ^bfl-admin/(.+)$         admin/$1         [L,QSA]
+
+</IfModule>
+
+# ── Custom Error Pages ────────────────────────────────────────────────────────
+ErrorDocument 404 /404.html
+
+# ── Security Headers ──────────────────────────────────────────────────────────
+<IfModule mod_headers.c>
+    Header always set X-Content-Type-Options  "nosniff"
+    Header always set X-Frame-Options         "SAMEORIGIN"
+    Header always set Referrer-Policy         "strict-origin-when-cross-origin"
+    Header always set X-XSS-Protection        "1; mode=block"
+</IfModule>
+
+# ── Block sensitive files ─────────────────────────────────────────────────────
+<FilesMatch "\.(env|gitignore|sql|bak|log|ini)$">
+    Order allow,deny
+    Deny from all
+</FilesMatch>
+
+# ── Browser Caching ───────────────────────────────────────────────────────────
+<IfModule mod_expires.c>
+    ExpiresActive On
+    ExpiresByType text/css               "access plus 1 week"
+    ExpiresByType application/javascript "access plus 1 week"
+    ExpiresByType image/png              "access plus 1 month"
+    ExpiresByType image/jpeg             "access plus 1 month"
+    ExpiresByType image/webp             "access plus 1 month"
+    ExpiresByType image/svg+xml          "access plus 1 month"
+</IfModule>
+
+# ── Compression ───────────────────────────────────────────────────────────────
+<IfModule mod_deflate.c>
+    AddOutputFilterByType DEFLATE text/html text/css application/javascript application/json
+</IfModule>

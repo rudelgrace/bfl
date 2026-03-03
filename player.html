@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Player — Battle 3x3</title>
+  <link rel="stylesheet" href="css/battle.css">
+</head>
+
+<body>
+
+  <div id="nav-placeholder"></div>
+
+  <!-- PLAYER HERO -->
+  <section class="page-hero" id="player-hero" style="padding-top:calc(var(--nav-h) + 20px)">
+    <div class="container">
+      <div id="player-hero-content">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="page-content" style="padding-top:32px">
+    <div class="container">
+      <!-- BIO -->
+      <div id="bio-section" class="mt-40" style="display:none">
+        <div class="section-header animate-up">
+          <h2 class="section-title">Bio<span>graphy</span></h2>
+        </div>
+        <div class="card">
+          <div class="card-body">
+            <p id="bio-text" style="color:var(--text-secondary);line-height:1.8"></p>
+          </div>
+        </div>
+      </div>
+
+      <!-- SEASON STATS TABS -->
+      <div class="section-header animate-up">
+        <h2 class="section-title">Season <span>Stats</span></h2>
+      </div>
+      <div class="tab-bar" id="stats-tabs" style="display:none">
+        <button class="tab-btn active" data-tab="regular">Regular Season</button>
+        <button class="tab-btn" data-tab="playoffs">Playoffs</button>
+      </div>
+      <div id="stats-output">
+        <div class="loading-spinner">
+          <div class="spinner"></div>
+        </div>
+      </div>
+
+      <!-- CAREER -->
+      <div class="mt-40">
+        <div class="section-header animate-up">
+          <h2 class="section-title">Career <span>History</span></h2>
+        </div>
+        <div id="career-output">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- GAME LOG -->
+      <div class="mt-40">
+        <div class="section-header animate-up">
+          <h2 class="section-title">Game <span>Log</span></h2>
+          <span style="font-size:13px;color:var(--text-muted)">Last 10 games</span>
+        </div>
+        <div id="gamelog-output">
+          <div class="loading-spinner">
+            <div class="spinner"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <div id="footer-placeholder"></div>
+
+  <script src="js/nav.js"></script>
+  <script src="js/api.js"></script>
+  <script>
+    let playerData = null;
+    let currentTab = 'regular';
+
+    document.addEventListener('DOMContentLoaded', async () => {
+      const id = new URLSearchParams(location.search).get('id');
+      if (!id) { location.href = 'players'; return; }
+      await new Promise(r => setTimeout(r, 80));
+      loadPlayer(parseInt(id));
+    });
+
+    async function loadPlayer(id) {
+      try {
+        playerData = await API.player(id);
+        renderHero(playerData);
+        renderSeasonStats(playerData);
+        renderCareer(playerData);
+        renderGameLog(playerData);
+        renderBio(playerData);
+
+        document.getElementById('stats-tabs').style.display = '';
+        document.querySelectorAll('#stats-tabs .tab-btn').forEach(btn => {
+          btn.addEventListener('click', () => {
+            document.querySelectorAll('#stats-tabs .tab-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            currentTab = btn.dataset.tab;
+            renderSeasonStats(playerData);
+          });
+        });
+      } catch (e) {
+        document.getElementById('player-hero-content').innerHTML = emptyState('⚠️', 'Player not found');
+      }
+    }
+
+    function renderHero(data) {
+      const p = data.player;
+      const c = data.career;
+      const ranking = data.rankings?.all_time_pts_rank;
+      const name = `${p.first_name} ${p.last_name}`;
+      const latestSeason = data.seasons?.[0];
+
+      document.title = `${name} — Battle 3x3`;
+
+      const photo = p.photo
+        ? `<img src="${p.photo}" alt="${name}" class="player-hero-photo">`
+        : `<div class="player-hero-placeholder">🏀</div>`;
+
+      document.getElementById('player-hero-content').innerHTML = `
+    <a href="players" style="font-size:13px;color:var(--text-muted);margin-bottom:16px;display:inline-flex;align-items:center;gap:4px">← Back to Players</a>
+    <div class="player-hero">
+      ${photo}
+      <div class="player-hero-info" style="position:relative">
+        <div class="flex items-center gap-8 mb-8">
+          ${Utils.statusBadge(p.league_name ? 'active' : 'active')}
+          <span class="badge badge-muted">${p.league_name}</span>
+          ${latestSeason ? `<span class="badge badge-blue">${latestSeason.team_name}</span>` : ''}
+          ${ranking ? `<span class="badge badge-gold">#${ranking} All-Time PTS</span>` : ''}
+        </div>
+        ${latestSeason?.jersey_number ? `<div style="font-family:var(--font-display);font-size:1rem;color:var(--orange);margin-bottom:4px">#${latestSeason.jersey_number}</div>` : ''}
+        <h1 style="font-family:var(--font-display);font-size:clamp(2rem,5vw,3.5rem);letter-spacing:0.03em;line-height:1">${name.toUpperCase()}</h1>
+        <div class="player-hero-meta">
+          ${p.position ? `<span class="badge badge-muted">${p.position}</span>` : ''}
+          ${p.height ? `<span class="badge badge-muted">${p.height}</span>` : ''}
+          ${p.age ? `<span class="badge badge-muted">${p.age} yrs</span>` : ''}
+        </div>
+        <div class="player-hero-stat-grid">
+          <div class="player-hero-stat">
+            <div class="v">${c?.career_ppg || 0}</div>
+            <div class="l">Career PPG</div>
+          </div>
+          <div class="player-hero-stat">
+            <div class="v">${c?.career_pts || 0}</div>
+            <div class="l">Career PTS</div>
+          </div>
+          <div class="player-hero-stat">
+            <div class="v">${c?.career_3pt || 0}</div>
+            <div class="l">Career 3PM</div>
+          </div>
+          <div class="player-hero-stat">
+            <div class="v" style="color:var(--gold)">${c?.career_high || 0}</div>
+            <div class="l">Career High</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  `;
+    }
+
+    function renderSeasonStats(data) {
+      const el = document.getElementById('stats-output');
+      const seasons = data.seasons || [];
+
+      const rows = seasons.filter(s => currentTab === 'regular' ? s.reg_gp > 0 : s.po_gp > 0);
+
+      if (!rows.length) {
+        el.innerHTML = emptyState('📊', `No ${currentTab === 'regular' ? 'regular season' : 'playoff'} stats`);
+        return;
+      }
+
+      if (currentTab === 'regular') {
+        el.innerHTML = `
+      <div class="table-wrap animate-up">
+        <table>
+          <thead><tr>
+            <th>Season</th><th>Team</th>
+            <th>GP</th><th>PTS</th><th>PPG</th>
+            <th>2PM</th><th>3PM</th><th>FTM</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(s => `
+              <tr>
+                <td>${s.season_name}</td>
+                <td>
+                  <div class="team-name-cell">
+                    ${Utils.teamLogo(s.team_logo, s.team_name)}
+                    ${s.team_name}
+                  </div>
+                </td>
+                <td>${s.reg_gp}</td>
+                <td style="font-weight:700">${s.reg_pts}</td>
+                <td style="color:var(--orange);font-weight:700">${s.reg_ppg}</td>
+                <td>${s.reg_2pt}</td>
+                <td>${s.reg_3pt}</td>
+                <td>${s.reg_ft}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+      } else {
+        el.innerHTML = `
+      <div class="table-wrap animate-up">
+        <table>
+          <thead><tr>
+            <th>Season</th><th>Team</th>
+            <th>GP</th><th>PTS</th><th>PPG</th><th>3PM</th>
+          </tr></thead>
+          <tbody>
+            ${rows.map(s => `
+              <tr>
+                <td>${s.season_name}</td>
+                <td>
+                  <div class="team-name-cell">
+                    ${Utils.teamLogo(s.team_logo, s.team_name)}
+                    ${s.team_name}
+                  </div>
+                </td>
+                <td>${s.po_gp}</td>
+                <td style="font-weight:700">${s.po_pts}</td>
+                <td style="color:var(--orange);font-weight:700">${s.po_ppg}</td>
+                <td>${s.po_3pt}</td>
+              </tr>
+            `).join('')}
+          </tbody>
+        </table>
+      </div>
+    `;
+      }
+    }
+
+    function renderCareer(data) {
+      const c = data.career;
+      const el = document.getElementById('career-output');
+      el.innerHTML = `
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px" class="animate-up">
+      ${[
+          ['Career PTS', c?.career_pts || 0],
+          ['Career GPG', c?.career_ppg || 0, 'text-orange'],
+          ['Career 3PM', c?.career_3pt || 0],
+          ['Career High', c?.career_high || 0, 'text-gold'],
+        ].map(([lbl, val, cls = '']) => `
+        <div class="card">
+          <div class="big-stat">
+            <span class="value ${cls}" style="color:inherit">${val}</span>
+            <span class="label">${lbl}</span>
+          </div>
+        </div>
+      `).join('')}
+    </div>
+    <div style="margin-top:16px;font-size:12px;color:var(--text-muted)">* Career totals include both regular season and playoff games</div>
+  `;
+    }
+
+    function renderGameLog(data) {
+      const el = document.getElementById('gamelog-output');
+      const log = data.game_log || [];
+      if (!log.length) { el.innerHTML = emptyState('📋', 'No game history'); return; }
+
+      el.innerHTML = `
+    <div class="table-wrap animate-up">
+      <table>
+        <thead><tr>
+          <th>Date</th><th>Matchup</th><th>Type</th>
+          <th>PTS</th><th>2PM</th><th>3PM</th><th>FTM</th>
+        </tr></thead>
+        <tbody>
+          ${log.map(g => {
+        const score = g.home_score !== null ? `${g.home_score}–${g.away_score}` : 'TBD';
+        return `
+              <tr>
+                <td style="color:var(--text-muted)">${Utils.formatDate(g.game_date)}</td>
+                <td>
+                  <div style="font-weight:600">${g.home_team} vs ${g.away_team}</div>
+                  <div style="font-size:11px;color:var(--text-muted)">${g.player_team} · ${score}</div>
+                </td>
+                <td>${Utils.gameTypeBadge(g.game_type, g.playoff_round)}</td>
+                <td style="color:var(--orange);font-weight:700;font-size:1.1em">${g.total_points}</td>
+                <td>${g.two_points_made}</td>
+                <td>${g.three_points_made}</td>
+                <td>${g.free_throws_made}</td>
+              </tr>
+            `;
+      }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+    }
+
+    function renderBio(data) {
+      const bio = data.player?.bio;
+      if (!bio) return;
+      document.getElementById('bio-section').style.display = '';
+      document.getElementById('bio-text').textContent = bio;
+    }
+  </script>
+
+  <style>
+    @media (max-width: 600px) {
+      #career-output>div {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+  </style>
+</body>
+
+</html>

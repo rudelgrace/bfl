@@ -1,0 +1,450 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About — Battle 3x3</title>
+  <meta name="description" content="Learn about Battle 3x3 basketball — league format, rules, structure and all active competitions.">
+  <link rel="stylesheet" href="css/battle.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     HERO — "What Is Battle 3x3?"
+     Description is loaded dynamically from the selected league's
+     `description` field in the backend. Falls back to a generic
+     description if no league is selected or no description exists.
+     ═══════════════════════════════════════════════════════════ -->
+<section class="about-hero" style="padding-top:calc(var(--nav-h) + 60px)">
+  <div class="container">
+    <div class="about-grid">
+      <div class="animate-up">
+        <div class="home-hero-eyebrow">The Game</div>
+        <h1 style="font-family:var(--font-display);font-size:clamp(3rem,7vw,5rem);letter-spacing:.04em;line-height:.95;margin-bottom:20px">
+          WHAT IS<br><span style="color:var(--orange)">BATTLE</span><br>3x3?
+        </h1>
+
+        <!-- Dynamic league description — loaded from backend -->
+        <p id="league-description"
+           style="color:var(--text-secondary);font-size:16px;line-height:1.8;max-width:480px;margin-bottom:28px">
+          Loading…
+        </p>
+
+        <div style="display:flex;gap:12px;flex-wrap:wrap">
+          <a href="players" class="btn btn-primary">🏀 View Players</a>
+          <a href="games"   class="btn btn-ghost">View Schedule</a>
+        </div>
+      </div>
+
+      <!-- Live stats panel -->
+      <div style="position:relative">
+        <div style="background:linear-gradient(135deg,var(--card),var(--surface));border:1px solid var(--border);border-radius:var(--radius-lg);padding:32px;animation:fadeInUp .6s .2s both">
+          <div style="font-family:var(--font-display);font-size:2.5rem;color:var(--orange);margin-bottom:8px"
+               id="about-stat-players">—</div>
+          <div style="font-size:13px;color:var(--text-muted);margin-bottom:24px;text-transform:uppercase;letter-spacing:.08em">Active Players</div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px">
+            <div>
+              <div style="font-family:var(--font-display);font-size:2rem;color:var(--text-primary)"
+                   id="about-stat-teams">—</div>
+              <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">Teams</div>
+            </div>
+            <div>
+              <div style="font-family:var(--font-display);font-size:2rem;color:var(--text-primary)"
+                   id="about-stat-games">—</div>
+              <div style="font-size:12px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.08em">Games Played</div>
+            </div>
+          </div>
+
+          <div style="margin-top:24px;padding-top:24px;border-top:1px solid var(--border)">
+            <div style="font-size:13px;color:var(--text-muted);margin-bottom:8px">Current League</div>
+            <div style="font-weight:700;color:var(--text-primary)" id="about-league-name">Loading…</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FORMAT CARD — Game Rules
+     Layout and styling preserved exactly.
+     Content updated to match the official Battle 3x3 game rules:
+       • Game to 50 points
+       • Win by 2
+       • 14-second possession
+       • 2 pts inside arc, 3 pts outside arc
+       • Free throw = 1 point
+     ═══════════════════════════════════════════════════════════ -->
+<section style="padding:64px 0;border-top:1px solid var(--border)">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:40px">
+      <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);letter-spacing:.04em;margin-bottom:8px">THE FORMAT</h2>
+      <p style="color:var(--text-secondary)">Everything you need to know about Battle 3x3 basketball</p>
+    </div>
+    <div class="about-feature-grid">
+
+      <div class="about-feature">
+        <div class="about-feature-icon">🏀</div>
+        <div class="about-feature-title">3-on-3 Format</div>
+        <div class="about-feature-text">
+          Three players per team on a half-court. Fast, physical, relentless.
+          Every possession and every point matters more.
+        </div>
+      </div>
+
+      <div class="about-feature">
+        <div class="about-feature-icon">⏱️</div>
+        <div class="about-feature-title">14-Second Possession</div>
+        <div class="about-feature-text">
+          Each team has 14 seconds to attempt a shot once they gain possession.
+          No time to waste — attack the basket or fire from outside.
+        </div>
+      </div>
+
+      <div class="about-feature">
+        <div class="about-feature-icon">🎯</div>
+        <div class="about-feature-title">Point Values</div>
+        <div class="about-feature-text">
+          Inside the arc: <strong>2 points</strong>. Beyond the arc: <strong>3 points</strong>.
+          Free throws: <strong>1 point</strong> each.
+          Shot selection is everything.
+        </div>
+      </div>
+
+      <div class="about-feature">
+        <div class="about-feature-icon">🔢</div>
+        <div class="about-feature-title">Game to 50 — Win by 2</div>
+        <div class="about-feature-text">
+          First team to reach 50 points wins. You must win by at least 2 —
+          no close game ends on a single basket.
+        </div>
+      </div>
+
+      <div class="about-feature">
+        <div class="about-feature-icon">📊</div>
+        <div class="about-feature-title">Full Stats Tracking</div>
+        <div class="about-feature-text">
+          Every game is tracked in full — 2-pointers, 3-pointers, free throws made
+          and attempted, season totals, career highs and all-time rankings.
+        </div>
+      </div>
+
+      <div class="about-feature">
+        <div class="about-feature-icon">🏆</div>
+        <div class="about-feature-title">Playoff Bracket</div>
+        <div class="about-feature-text">
+          Top teams from the regular season advance to single-elimination playoffs.
+          Regular season and playoff MVPs are crowned each season.
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     RULES & STRUCTURE — Dynamic from backend
+     If the league has `rules` or `structure` content set in the
+     admin, those are displayed. Otherwise, the default hardcoded
+     rules for Battle 3x3 are shown (since the rules don't change
+     per league, this is appropriate fallback content).
+     ═══════════════════════════════════════════════════════════ -->
+<section id="rules-section" style="padding:64px 0;border-top:1px solid var(--border);background:var(--surface)">
+  <div class="container">
+    <div style="max-width:720px;margin:0 auto">
+      <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);letter-spacing:.04em;margin-bottom:8px;text-align:center">
+        RULES &amp; STRUCTURE
+      </h2>
+      <p style="color:var(--text-secondary);text-align:center;margin-bottom:40px">
+        The official Battle 3x3 competition rules
+      </p>
+
+      <!-- Dynamic rules from backend (shown when admin has set rules) -->
+      <div id="rules-dynamic" style="display:none;margin-bottom:32px">
+        <div id="rules-content" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;white-space:pre-line;color:var(--text-secondary);font-size:14px;line-height:1.8"></div>
+      </div>
+
+      <!-- Default rules cards (shown when no admin-managed rules are set) -->
+      <div id="rules-default" style="display:flex;flex-direction:column;gap:16px">
+
+        <div style="display:flex;gap:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="font-size:1.5rem;flex-shrink:0;padding-top:2px">🔢</div>
+          <div>
+            <div style="font-weight:700;margin-bottom:6px">Game to 50 — Win by 2</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.7">
+              First team to reach 50 points wins the game. A team must win by at least
+              2 points — if the score reaches 49–49, play continues until one team leads by 2.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="font-size:1.5rem;flex-shrink:0;padding-top:2px">⏱️</div>
+          <div>
+            <div style="font-weight:700;margin-bottom:6px">14-Second Possession Clock</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.7">
+              Teams must attempt a shot within 14 seconds of gaining possession.
+              Failure to shoot within the clock results in a turnover.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="font-size:1.5rem;flex-shrink:0;padding-top:2px">🎯</div>
+          <div>
+            <div style="font-weight:700;margin-bottom:6px">Scoring</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.7">
+              Shots made <strong>inside</strong> the arc count for <strong>2 points</strong>.
+              Shots from <strong>outside</strong> the arc count for <strong>3 points</strong>.
+              Each <strong>free throw</strong> is worth <strong>1 point</strong>.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="font-size:1.5rem;flex-shrink:0;padding-top:2px">🏀</div>
+          <div>
+            <div style="font-weight:700;margin-bottom:6px">The Court</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.7">
+              Played on a half-court with one basket. The arc line divides inside (2pt)
+              and outside (3pt) scoring zones.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="font-size:1.5rem;flex-shrink:0;padding-top:2px">👥</div>
+          <div>
+            <div style="font-weight:700;margin-bottom:6px">Team Size</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.7">
+              Each team fields 3 active players. Rosters are managed per season
+              and locked before playoffs begin.
+            </div>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:20px;background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:20px">
+          <div style="font-size:1.5rem;flex-shrink:0;padding-top:2px">👑</div>
+          <div>
+            <div style="font-weight:700;margin-bottom:6px">MVP Award</div>
+            <div style="color:var(--text-secondary);font-size:14px;line-height:1.7">
+              Regular season and playoff MVPs are awarded each season based on
+              overall scoring performance and impact.
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <!-- Dynamic structure from backend (shown when admin has set structure) -->
+      <div id="structure-dynamic" style="display:none;margin-top:32px">
+        <h3 style="font-family:var(--font-display);font-size:1.6rem;letter-spacing:.04em;margin-bottom:16px">SEASON STRUCTURE</h3>
+        <div id="structure-content" style="background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px;white-space:pre-line;color:var(--text-secondary);font-size:14px;line-height:1.8"></div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+<!-- ═══════════════════════════════════════════════════════════
+     OUR LEAGUES — Dynamic
+     ═══════════════════════════════════════════════════════════ -->
+<section style="padding:64px 0;border-top:1px solid var(--border)">
+  <div class="container">
+    <div style="text-align:center;margin-bottom:40px">
+      <h2 style="font-family:var(--font-display);font-size:clamp(2rem,4vw,3rem);letter-spacing:.04em;margin-bottom:8px">
+        OUR LEAGUES
+      </h2>
+      <p style="color:var(--text-secondary)">All active and past Battle 3x3 competitions</p>
+    </div>
+    <div id="leagues-grid" class="grid-3 stagger">
+      <div class="loading-spinner" style="grid-column:1/-1"><div class="spinner"></div></div>
+    </div>
+  </div>
+</section>
+
+<!-- CTA -->
+<section style="padding:80px 0;text-align:center;background:linear-gradient(135deg,var(--surface),#0d1626);border-top:1px solid var(--border)">
+  <div class="container">
+    <div style="font-family:var(--font-display);font-size:clamp(2.5rem,6vw,5rem);letter-spacing:.04em;line-height:1;margin-bottom:16px">
+      READY TO<br><span style="color:var(--orange)">BATTLE?</span>
+    </div>
+    <p style="color:var(--text-secondary);font-size:16px;margin-bottom:32px;max-width:480px;margin-left:auto;margin-right:auto">
+      Follow your favourite players, check the standings and never miss a game.
+    </p>
+    <div style="display:flex;justify-content:center;gap:12px;flex-wrap:wrap">
+      <a href="players" class="btn btn-primary" style="font-size:15px;padding:14px 28px">View Players</a>
+      <a href="games"   class="btn btn-ghost"   style="font-size:15px;padding:14px 28px">See Schedule</a>
+    </div>
+  </div>
+</section>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/nav.js"></script>
+<script src="js/api.js"></script>
+<script>
+/**
+ * Default description used when the selected league has no description set.
+ * This is the only hard-coded fallback — all other content is dynamic.
+ */
+const DEFAULT_DESCRIPTION =
+  'Battle 3x3 is an elite 3-on-3 basketball competition where skill, hustle and ' +
+  'heart define every possession. Fast-paced, physical and always electric — ' +
+  'this is basketball stripped to its purest form.';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await new Promise(r => setTimeout(r, 100)); // wait for nav/State to init
+  loadAboutData();
+});
+
+async function loadAboutData() {
+  const l   = State.selectedLeague;
+  const lid = l?.id;
+  const sid = l?.season?.id;
+
+  // ── Update hero description ──────────────────────────────
+  const descEl = document.getElementById('league-description');
+  if (l?.description) {
+    descEl.textContent = l.description;
+  } else {
+    descEl.textContent = DEFAULT_DESCRIPTION;
+  }
+
+  // ── League name panel ────────────────────────────────────
+  document.getElementById('about-league-name').textContent = l?.name || 'No league selected';
+
+  // ── Rules & Structure from backend ───────────────────────
+  applyRulesAndStructure(l);
+
+  // ── Fetch live stats ─────────────────────────────────────
+  try {
+    const [leagues, players, games] = await Promise.all([
+      API.leagues(),
+      lid ? API.players(lid, sid) : Promise.resolve([]),
+      lid ? API.games({ league_id: lid, status: 'completed' }) : Promise.resolve([]),
+    ]);
+
+    document.getElementById('about-stat-players').textContent = players.length;
+    document.getElementById('about-stat-teams').textContent   =
+      new Set(players.map(p => p.team_id).filter(Boolean)).size;
+    document.getElementById('about-stat-games').textContent   = games.length;
+
+    renderLeagues(leagues);
+
+    // ── Re-apply rules from freshly fetched leagues list ──
+    // (State.selectedLeague description/rules might differ from the
+    //  locally cached version — use the freshest data available)
+    const freshLeague = leagues.find(lg => lg.id === lid);
+    if (freshLeague) {
+      if (freshLeague.description && !l?.description) {
+        descEl.textContent = freshLeague.description;
+      }
+      applyRulesAndStructure(freshLeague);
+    }
+
+  } catch (e) {
+    console.error('About page data error:', e);
+    renderLeagues([]);
+  }
+}
+
+/**
+ * Shows admin-managed rules/structure if available, otherwise
+ * displays the default static rules cards.
+ */
+function applyRulesAndStructure(league) {
+  const rulesDyn  = document.getElementById('rules-dynamic');
+  const rulesEl   = document.getElementById('rules-content');
+  const rulesDef  = document.getElementById('rules-default');
+  const structDyn = document.getElementById('structure-dynamic');
+  const structEl  = document.getElementById('structure-content');
+
+  if (league?.rules && league.rules.trim()) {
+    // Admin has set custom rules — show them, hide the default cards
+    rulesEl.textContent   = league.rules.trim();
+    rulesDyn.style.display  = 'block';
+    rulesDef.style.display  = 'none';
+  } else {
+    // No admin rules — show the default static cards
+    rulesDyn.style.display  = 'none';
+    rulesDef.style.display  = 'flex';
+  }
+
+  if (league?.structure && league.structure.trim()) {
+    structEl.textContent     = league.structure.trim();
+    structDyn.style.display  = 'block';
+  } else {
+    structDyn.style.display  = 'none';
+  }
+}
+
+/**
+ * Renders the league cards grid.
+ * Shows description if available.
+ */
+function renderLeagues(leagues) {
+  const el = document.getElementById('leagues-grid');
+  if (!leagues.length) {
+    el.innerHTML = `<div style="grid-column:1/-1">${emptyState('🏀', 'No leagues found')}</div>`;
+    return;
+  }
+
+  el.innerHTML = leagues.map((l, i) => {
+    const s = l.season;
+    return `
+      <div class="card animate-up" style="animation-delay:${i * 0.07}s;cursor:pointer"
+           onclick="switchLeague(${l.id})">
+        <div class="card-body">
+          <div style="display:flex;align-items:center;gap:12px;margin-bottom:16px">
+            ${l.logo
+              ? `<img src="${l.logo}" style="width:48px;height:48px;object-fit:contain;border-radius:8px" alt="${l.name}">`
+              : `<div style="width:48px;height:48px;border-radius:8px;background:var(--orange-glow);display:flex;align-items:center;justify-content:center;font-size:1.5rem">🏀</div>`
+            }
+            <div>
+              <div style="font-family:var(--font-display);font-size:1.2rem;letter-spacing:.04em">${l.name}</div>
+              <div style="font-size:12px;color:var(--text-muted)">${l.status}</div>
+            </div>
+          </div>
+
+          ${s ? `
+            <div style="padding-top:16px;border-top:1px solid var(--border)">
+              <div style="font-size:12px;color:var(--text-muted);margin-bottom:4px">Current Season</div>
+              <div style="font-weight:600">${s.name}</div>
+              <div style="margin-top:8px">${Utils.statusBadge(s.status)}</div>
+            </div>
+          ` : `
+            <div style="padding-top:16px;border-top:1px solid var(--border)">
+              <span class="badge badge-muted">No active season</span>
+            </div>
+          `}
+
+          ${l.description
+            ? `<p style="margin-top:12px;font-size:13px;color:var(--text-secondary);line-height:1.6">${l.description}</p>`
+            : ''}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+</script>
+
+<style>
+/* ── Mobile overrides ───────────────────────────────── */
+@media (max-width: 768px) {
+  .about-grid {
+    grid-template-columns: 1fr !important;
+  }
+  .about-feature-grid {
+    grid-template-columns: 1fr !important;
+  }
+  #leagues-grid {
+    grid-template-columns: 1fr !important;
+  }
+}
+</style>
+</body>
+</html>

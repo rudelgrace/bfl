@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Players — Battle 3x3</title>
+  <link rel="stylesheet" href="css/battle.css">
+</head>
+<body>
+
+<div id="nav-placeholder"></div>
+
+<!-- HERO -->
+<section class="page-hero">
+  <div class="container">
+    <div class="page-hero-badge">🏀 Roster</div>
+    <h1>PLAYERS</h1>
+    <p id="hero-subtitle">All players in the league — stats, rankings and profiles.</p>
+  </div>
+</section>
+
+<div class="page-content">
+  <div class="container">
+
+    <!-- Filters -->
+    <div class="filter-bar">
+      <div class="search-box">
+        <span class="icon">🔍</span>
+        <input type="text" id="search" placeholder="Search player name…">
+      </div>
+      <select class="filter-select" id="team-filter">
+        <option value="">All Teams</option>
+      </select>
+      <div class="tab-bar" style="margin-bottom:0">
+        <button class="tab-btn active" data-sort="ppg">PPG</button>
+        <button class="tab-btn" data-sort="season_pts">Total PTS</button>
+        <button class="tab-btn" data-sort="season_3pt">3PM</button>
+        <button class="tab-btn" data-sort="season_ft">FTM</button>
+        <button class="tab-btn" data-sort="name">A–Z</button>
+      </div>
+    </div>
+
+    <!-- View toggle -->
+    <div style="display:flex;justify-content:flex-end;gap:8px;margin-bottom:20px">
+      <button class="btn btn-ghost btn-sm" id="view-grid" title="Card view" style="padding:8px">⊞</button>
+      <button class="btn btn-ghost btn-sm" id="view-list" title="List view" style="padding:8px">☰</button>
+    </div>
+
+    <!-- Players output -->
+    <div id="players-output">
+      <div class="loading-spinner"><div class="spinner"></div><span>Loading players…</span></div>
+    </div>
+
+    <div id="players-count" style="margin-top:16px;font-size:13px;color:var(--text-muted)"></div>
+  </div>
+</div>
+
+<div id="footer-placeholder"></div>
+
+<script src="js/nav.js"></script>
+<script src="js/api.js"></script>
+<script>
+let allPlayers = [];
+let currentSort = 'ppg';
+let viewMode = 'grid';
+
+document.addEventListener('DOMContentLoaded', async () => {
+  await new Promise(r => setTimeout(r, 120));
+  loadPlayers();
+
+  document.getElementById('search').addEventListener('input', renderFiltered);
+  document.getElementById('team-filter').addEventListener('change', renderFiltered);
+
+  document.querySelectorAll('[data-sort]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('[data-sort]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      currentSort = btn.dataset.sort;
+      renderFiltered();
+    });
+  });
+
+  document.getElementById('view-grid').addEventListener('click', () => {
+    viewMode = 'grid';
+    renderFiltered();
+  });
+  document.getElementById('view-list').addEventListener('click', () => {
+    viewMode = 'list';
+    renderFiltered();
+  });
+});
+
+async function loadPlayers() {
+  const l = State.selectedLeague;
+  if (!l) {
+    document.getElementById('players-output').innerHTML = emptyState('🏀','Please select a league from the top menu.');
+    return;
+  }
+  const sid = l.season?.id;
+  document.getElementById('hero-subtitle').textContent = `${l.name} · ${l.season?.name || 'All Seasons'}`;
+
+  try {
+    allPlayers = await API.players(l.id, sid);
+    populateTeamFilter();
+    renderFiltered();
+  } catch (e) {
+    document.getElementById('players-output').innerHTML = emptyState('⚠️','Could not load players. Check API connection.');
+  }
+}
+
+function populateTeamFilter() {
+  const teams = [...new Map(allPlayers.filter(p => p.team_id).map(p => [p.team_id, p.team_name])).entries()];
+  const sel = document.getElementById('team-filter');
+  sel.innerHTML = `<option value="">All Teams</option>` +
+    teams.map(([id, name]) => `<option value="${id}">${name}</option>`).join('');
+}
+
+function getSorted(players) {
+  if (currentSort === 'name') return [...players].sort((a,b) => `${a.last_name}${a.first_name}`.localeCompare(`${b.last_name}${b.first_name}`));
+  return [...players].sort((a,b) => (parseFloat(b[currentSort])||0) - (parseFloat(a[currentSort])||0));
+}
+
+function renderFiltered() {
+  const q     = document.getElementById('search').value.toLowerCase();
+  const team  = document.getElementById('team-filter').value;
+  let filtered = allPlayers.filter(p => {
+    const name = `${p.first_name} ${p.last_name}`.toLowerCase();
+    return (!q || name.includes(q)) && (!team || String(p.team_id) === team);
+  });
+  const sorted = getSorted(filtered);
+
+  document.getElementById('players-count').textContent = `${sorted.length} player${sorted.length !== 1 ? 's' : ''} found`;
+
+  if (!sorted.length) {
+    document.getElementById('players-output').innerHTML = emptyState('🔍','No players match your search');
+    return;
+  }
+
+  if (viewMode === 'grid') renderGrid(sorted);
+  else renderTable(sorted);
+}
+
+function renderGrid(players) {
+  const el = document.getElementById('players-output');
+  el.innerHTML = `<div class="grid-4 stagger">` +
+    players.map((p, i) => {
+      const name = `${p.first_name} ${p.last_name}`;
+      const photo = p.photo
+        ? `<img src="${p.photo}" alt="${name}" class="player-card-photo">`
+        : `<div class="player-card-photo-placeholder">🏀</div>`;
+      return `
+        <a href="player?id=${p.id}" class="player-card" style="animation-delay:${Math.min(i,12)*0.04}s">
+          ${photo}
+          <div class="player-card-body">
+            ${p.jersey_number !== null ? `<div class="player-card-jersey">#${p.jersey_number}</div>` : ''}
+            <div class="player-card-name">${name}</div>
+            <div class="player-card-team">${p.team_name || 'Free Agent'}</div>
+            <div class="player-stats-row">
+              <div class="stat-cell"><span class="val">${p.ppg || 0}</span><span class="lbl">PPG</span></div>
+              <div class="stat-cell"><span class="val">${p.season_3pt || 0}</span><span class="lbl">3PM</span></div>
+              <div class="stat-cell"><span class="val">${p.season_gp || 0}</span><span class="lbl">GP</span></div>
+            </div>
+          </div>
+        </a>
+      `;
+    }).join('') + `</div>`;
+}
+
+function renderTable(players) {
+  const el = document.getElementById('players-output');
+  el.innerHTML = `
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>#</th>
+            <th>Player</th>
+            <th>Team</th>
+            <th>Pos</th>
+            <th title="Points per game">PPG</th>
+            <th title="Total points">PTS</th>
+            <th title="Three-pointers made">3PM</th>
+            <th title="Free throws made">FTM</th>
+            <th title="Games played">GP</th>
+          </tr>
+        </thead>
+        <tbody>
+          ${players.map((p, i) => {
+            const name = `${p.first_name} ${p.last_name}`;
+            return `
+              <tr onclick="location.href='player?id=${p.id}'" style="cursor:pointer">
+                <td class="rank-cell ${i<3?'top':''}">${i+1}</td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:10px">
+                    ${Utils.avatar(p.photo, name, 36)}
+                    <div>
+                      <div style="font-weight:600">${name}</div>
+                      ${p.jersey_number !== null ? `<div style="font-size:11px;color:var(--orange)">#${p.jersey_number}</div>` : ''}
+                    </div>
+                  </div>
+                </td>
+                <td style="color:var(--text-secondary)">${p.team_name || '—'}</td>
+                <td style="color:var(--text-muted);font-size:12px">${p.position || '—'}</td>
+                <td style="color:var(--orange);font-weight:700">${p.ppg || 0}</td>
+                <td style="font-weight:600">${p.season_pts || 0}</td>
+                <td>${p.season_3pt || 0}</td>
+                <td>${p.season_ft || 0}</td>
+                <td>${p.season_gp || 0}</td>
+              </tr>
+            `;
+          }).join('')}
+        </tbody>
+      </table>
+    </div>
+  `;
+}
+</script>
+</body>
+</html>
